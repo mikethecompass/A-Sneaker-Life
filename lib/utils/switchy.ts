@@ -63,7 +63,7 @@ export async function createSwitchyLink(
 
     // 422 = slug already taken — fetch the existing link instead
     if (res.status === 422 && customSlug) {
-      return fetchExistingLink(domain, customSlug, apiKey) ?? longUrl;
+      return (await fetchExistingLink(domain, customSlug, apiKey)) ?? longUrl;
     }
 
     console.error(`Switchy API error ${res.status}: ${text}`);

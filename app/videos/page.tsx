@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default async function VideosPage() {
-  const videos = await sanityClient.fetch<VideoItem[]>(ALL_VIDEOS_QUERY);
+  const videos = await sanityClient
+    .fetch<VideoItem[]>(ALL_VIDEOS_QUERY)
+    .catch(() => [] as VideoItem[]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">

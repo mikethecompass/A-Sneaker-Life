@@ -42,10 +42,14 @@ export async function generateMetadata({ params }: DealPageProps): Promise<Metad
 }
 
 export async function generateStaticParams() {
-  const deals = await sanityClient.fetch<{ slug: { current: string } }[]>(
-    `*[_type == "deal"]{ slug }`
-  );
-  return deals.map((d) => ({ slug: d.slug.current }));
+  try {
+    const deals = await sanityClient.fetch<{ slug: { current: string } }[]>(
+      `*[_type == "deal"]{ slug }`
+    );
+    return deals.map((d) => ({ slug: d.slug.current }));
+  } catch {
+    return [];
+  }
 }
 
 export default async function DealPage({ params }: DealPageProps) {

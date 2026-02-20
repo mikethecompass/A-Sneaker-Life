@@ -21,6 +21,8 @@ export interface RawDeal {
   expiresAt: string | null;
   /** Keyword tags from the network */
   categories: string[];
+  /** Slug for the deal page (computed from brand + title + id) */
+  slug: string;
   /** Sneaker-specific metadata */
   sku?: string;
   colorway?: string;

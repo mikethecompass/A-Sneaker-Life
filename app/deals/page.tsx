@@ -27,9 +27,9 @@ export async function generateMetadata({ searchParams }: DealsPageProps): Promis
 
 async function getDeals(tier: DiscountTier | null): Promise<DealCardProps[]> {
   if (tier) {
-    return sanityClient.fetch(DEALS_BY_TIER_QUERY, { tier });
+    return sanityClient.fetch(DEALS_BY_TIER_QUERY, { tier }).catch(() => []);
   }
-  return sanityClient.fetch(ALL_DEALS_QUERY);
+  return sanityClient.fetch(ALL_DEALS_QUERY).catch(() => []);
 }
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {

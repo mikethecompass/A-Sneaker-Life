@@ -11,8 +11,8 @@ export const revalidate = 300; // Revalidate every 5 minutes
 
 async function getHomeData() {
   const [deals, videos] = await Promise.all([
-    sanityClient.fetch<DealCardProps[]>(ALL_DEALS_QUERY),
-    sanityClient.fetch<VideoItem[]>(FEATURED_VIDEOS_QUERY),
+    sanityClient.fetch<DealCardProps[]>(ALL_DEALS_QUERY).catch(() => [] as DealCardProps[]),
+    sanityClient.fetch<VideoItem[]>(FEATURED_VIDEOS_QUERY).catch(() => [] as VideoItem[]),
   ]);
 
   return {

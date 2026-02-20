@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-geist-sans",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: {
@@ -49,7 +42,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en">
       <body className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">{children}</main>
