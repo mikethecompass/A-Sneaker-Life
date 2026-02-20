@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/deals/sync",
+      "schedule": "0 */4 * * *"
+    },
+    {
+      "path": "/api/twitter/post",
+      "schedule": "30 */6 * * *"
+    },
+    {
+      "path": "/api/youtube/sync",
+      "schedule": "0 */12 * * *"
+    }
+  ]
+}
