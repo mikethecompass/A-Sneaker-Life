@@ -2,15 +2,15 @@
   "crons": [
     {
       "path": "/api/deals/sync",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/twitter/post",
-      "schedule": "30 */6 * * *"
+      "schedule": "0 10 * * *"
     },
     {
       "path": "/api/youtube/sync",
-      "schedule": "0 */12 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
