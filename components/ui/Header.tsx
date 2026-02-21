@@ -4,7 +4,7 @@ const NAV_LINKS = [
   { label: "All Deals", href: "/deals" },
   { label: "50%+ Off", href: "/deals?tier=50" },
   { label: "30% Off", href: "/deals?tier=30" },
-  { label: "20% Off", href: "/deals?tier=20" },
+  { label: "Releases", href: "/releases" },
   { label: "Videos", href: "/videos" },
 ];
 

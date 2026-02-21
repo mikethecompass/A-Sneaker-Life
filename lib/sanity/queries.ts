@@ -115,6 +115,53 @@ export const FEATURED_VIDEOS_QUERY = groq`
   }
 `;
 
+// ─── Release queries ───────────────────────────────────────────────────────────
+
+export const ALL_RELEASES_QUERY = groq`
+  *[_type == "release" && !(_id in path("drafts.**"))]
+  | order(releaseDate asc) {
+    _id,
+    title,
+    slug,
+    brand->{_id, name, slug},
+    colorway,
+    sku,
+    imageUrl,
+    retailPrice,
+    currency,
+    releaseDate,
+    releaseTime,
+    releaseType,
+    gender,
+    affiliateUrl,
+    stockxUrl,
+    goatUrl
+  }
+`;
+
+export const UPCOMING_RELEASES_QUERY = groq`
+  *[_type == "release" && !(_id in path("drafts.**")) && releaseDate >= $from]
+  | order(releaseDate asc)
+  [0...30] {
+    _id,
+    title,
+    slug,
+    brand->{_id, name, slug},
+    colorway,
+    sku,
+    imageUrl,
+    retailPrice,
+    currency,
+    releaseDate,
+    releaseTime,
+    releaseType,
+    gender,
+    affiliateUrl,
+    stockxUrl,
+    goatUrl
+  }
+`;
+
 // ─── Brand queries ─────────────────────────────────────────────────────────────
 
 export const ALL_BRANDS_QUERY = groq`
