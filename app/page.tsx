@@ -7,7 +7,7 @@ import { VideoGrid } from "@/components/videos/VideoGrid";
 import type { DealCardProps } from "@/components/deals/DealCard";
 import type { VideoItem } from "@/components/videos/VideoGrid";
 
-export const revalidate = 300; // Revalidate every 5 minutes
+export const revalidate = 300;
 
 async function getHomeData() {
   const [deals, videos] = await Promise.all([
@@ -16,46 +16,61 @@ async function getHomeData() {
   ]);
 
   return {
-    // Show the top 8 deals on homepage
     featuredDeals: deals.slice(0, 8),
-    // Hottest deals (50%+ tier)
     hotDeals: deals.filter((d) => d.discountTier === 50).slice(0, 4),
     videos: videos.slice(0, 3),
   };
 }
+
+const STATS = [
+  { value: "125K+", label: "Followers" },
+  { value: "Daily", label: "Updated" },
+  { value: "Free", label: "No Signup" },
+];
 
 export default async function HomePage() {
   const { featuredDeals, hotDeals, videos } = await getHomeData();
 
   return (
     <>
-      {/* Hero */}
-      <section className="border-b border-brand-gray-100">
+      {/* Hero — dark */}
+      <section className="bg-[#111827]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 md:py-20">
-          <p className="section-heading">Daily Sneaker Deals</p>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-none mb-6">
-            The Best
-            <br />
+          <p className="text-xs uppercase tracking-[0.25em] text-accent mb-4">
+            Updated Daily
+          </p>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none mb-4 text-white">
             Sneaker Deals.
             <br />
-            <span className="text-brand-gray-400">Every Day.</span>
+            <span className="text-accent">Every Day.</span>
           </h1>
-          <p className="text-sm text-brand-gray-600 max-w-md mb-8">
+          <p className="text-sm text-white/60 max-w-md mb-8">
             Curated discounts from Nike, Adidas, Jordan, New Balance and more —
             filtered by discount tier so you always find the best value.
           </p>
+
+          {/* Social proof */}
+          <div className="flex flex-wrap gap-6 mb-8">
+            {STATS.map((s) => (
+              <div key={s.label}>
+                <p className="text-xl font-black text-white">{s.value}</p>
+                <p className="text-xs text-white/50 uppercase tracking-widest">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
           <div className="flex flex-wrap gap-3">
             <Link
               href="/deals?tier=50"
-              className="bg-brand-black text-brand-white text-xs uppercase tracking-widest px-6 py-3
-                         hover:bg-brand-gray-800 transition-colors"
+              className="bg-accent text-white text-xs font-bold uppercase tracking-widest px-6 py-3 rounded-xl
+                         hover:bg-accent-dark transition-colors"
             >
               50%+ Off Deals
             </Link>
             <Link
               href="/deals"
-              className="border border-brand-black text-brand-black text-xs uppercase tracking-widest px-6 py-3
-                         hover:bg-brand-black hover:text-brand-white transition-colors"
+              className="border border-white/20 text-white text-xs font-bold uppercase tracking-widest px-6 py-3 rounded-xl
+                         hover:bg-white/10 transition-colors"
             >
               All Deals
             </Link>
@@ -73,8 +88,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/deals?tier=50"
-              className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-brand-black
-                         transition-colors"
+              className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-accent transition-colors"
             >
               View all →
             </Link>
@@ -94,8 +108,7 @@ export default async function HomePage() {
           </div>
           <Link
             href="/deals"
-            className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-brand-black
-                       transition-colors"
+            className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-accent transition-colors"
           >
             View all →
           </Link>
@@ -118,8 +131,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/videos"
-              className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-brand-black
-                         transition-colors"
+              className="text-xs uppercase tracking-widest text-brand-gray-400 hover:text-accent transition-colors"
             >
               View all →
             </Link>
@@ -133,13 +145,13 @@ export default async function HomePage() {
 
 function DealFeedSkeleton({ count }: { count: number }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-brand-gray-100">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-brand-white p-4 animate-pulse">
-          <div className="aspect-square bg-brand-gray-100 mb-4" />
+        <div key={i} className="bg-brand-white rounded-2xl border border-brand-gray-100 p-4 animate-pulse">
+          <div className="aspect-square bg-brand-gray-100 rounded-xl mb-4" />
           <div className="h-3 bg-brand-gray-100 rounded mb-2" />
           <div className="h-3 bg-brand-gray-100 rounded w-2/3 mb-4" />
-          <div className="h-8 bg-brand-gray-100 rounded" />
+          <div className="h-10 bg-brand-gray-100 rounded-xl" />
         </div>
       ))}
     </div>

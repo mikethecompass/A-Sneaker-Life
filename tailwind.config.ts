@@ -23,8 +23,12 @@ const config: Config = {
             900: "#171717",
           },
         },
-        // Accent: single accent for sale badges
-        accent: "#ff0000",
+        // Accent: green for buttons, badges, sale prices
+        accent: {
+          DEFAULT: "#22c55e",
+          dark: "#16a34a",
+          light: "#dcfce7",
+        },
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],

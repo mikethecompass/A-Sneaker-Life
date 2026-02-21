@@ -16,6 +16,7 @@ export interface DealCardProps {
   discountTier: DiscountTier;
   currency?: string;
   expiresAt?: string | null;
+  publishedAt?: string | null;
 }
 
 function formatPrice(amount: number, currency = "USD"): string {
@@ -25,6 +26,22 @@ function formatPrice(amount: number, currency = "USD"): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+function timeAgo(dateStr?: string | null): string {
+  if (!dateStr) return "Just added";
+  try {
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: false })
+      .replace("about ", "")
+      .replace(" minutes", "m")
+      .replace(" minute", "m")
+      .replace(" hours", "h")
+      .replace(" hour", "h")
+      .replace(" days", "d")
+      .replace(" day", "d");
+  } catch {
+    return "Just added";
+  }
 }
 
 export function DealCard({
@@ -39,16 +56,18 @@ export function DealCard({
   discountTier,
   currency = "USD",
   expiresAt,
+  publishedAt,
 }: DealCardProps) {
   const savings = originalPrice - salePrice;
   const isHot = discountTier === 50;
+  const timeLabel = timeAgo(publishedAt);
   const expiresLabel = expiresAt
     ? `Expires ${formatDistanceToNow(new Date(expiresAt), { addSuffix: true })}`
     : null;
 
   return (
     <article className="deal-card group">
-      {/* Image */}
+      {/* Image area */}
       <Link href={`/deals/${slug.current}`} className="block relative aspect-square bg-brand-gray-50 overflow-hidden">
         {imageUrl ? (
           <Image
@@ -60,44 +79,45 @@ export function DealCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-xs uppercase tracking-widest text-brand-gray-400">
-              No Image
-            </span>
+            <span className="text-xs uppercase tracking-widest text-brand-gray-400">No Image</span>
           </div>
         )}
 
-        {/* Discount badge */}
+        {/* Green discount badge */}
         <span className={`discount-badge ${isHot ? "tier-50" : ""}`}>
-          {discountPercent}% off
+          {discountPercent}% OFF
         </span>
+
+        {/* Time badge */}
+        <span className="time-badge">{timeLabel}</span>
       </Link>
 
       {/* Content */}
       <div className="p-4">
         {brand && (
-          <p className="text-xs uppercase tracking-widest text-brand-gray-400 mb-1">
+          <p className="text-[10px] uppercase tracking-widest text-brand-gray-400 mb-0.5">
             {brand.name}
           </p>
         )}
 
         <Link href={`/deals/${slug.current}`}>
-          <h2 className="text-sm font-medium leading-snug line-clamp-2 mb-3 hover:underline">
+          <h2 className="text-sm font-semibold leading-snug line-clamp-2 mb-3 hover:text-accent transition-colors">
             {title}
           </h2>
         </Link>
 
-        {/* Pricing row */}
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-base font-bold">
+        {/* Pricing */}
+        <div className="flex items-baseline gap-2 mb-1">
+          <span className="text-lg font-bold text-accent">
             {formatPrice(salePrice, currency)}
           </span>
           <span className="text-xs text-brand-gray-400 line-through">
             {formatPrice(originalPrice, currency)}
           </span>
-          <span className="text-xs text-brand-gray-600 ml-auto">
-            Save {formatPrice(savings, currency)}
-          </span>
         </div>
+        <p className="text-xs text-accent font-medium mb-3">
+          Save {formatPrice(savings, currency)}
+        </p>
 
         {/* Expiry warning */}
         {expiresLabel && (
@@ -109,11 +129,10 @@ export function DealCard({
           href={affiliateUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="block w-full text-center bg-brand-black text-brand-white text-xs uppercase
-                     tracking-widest py-2.5 hover:bg-brand-gray-800 transition-colors"
+          className="btn-green"
           aria-label={`Shop ${title} — ${formatPrice(salePrice, currency)}`}
         >
-          Shop Deal
+          Shop Deal →
         </a>
 
         <p className="text-center text-[10px] text-brand-gray-400 mt-1.5">#ad</p>

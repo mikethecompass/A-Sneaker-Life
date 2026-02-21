@@ -21,11 +21,9 @@ export function DealFeed({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-brand-gray-100">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {deals.map((deal) => (
-        <div key={deal._id} className="bg-brand-white">
-          <DealCard {...deal} />
-        </div>
+        <DealCard key={deal._id} {...deal} />
       ))}
     </div>
   );
