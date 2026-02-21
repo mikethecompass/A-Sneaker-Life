@@ -4,8 +4,10 @@
 
 @layer base {
   :root {
-    --background: #fafafa;
-    --foreground: #0a0a0a;
+    --background: #0a0a0a;
+    --foreground: #fafafa;
+    --font-display: "Impact", "Haettenschweiler", "Arial Narrow Bold", sans-serif;
+    --font-body: "Inter", "Segoe UI", "Roboto", system-ui, sans-serif;
   }
 
   * {
@@ -15,15 +17,16 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-brand-white text-brand-black;
-    font-family: var(--font-body), Inter, system-ui, sans-serif;
+    @apply bg-brand-black text-brand-white;
+    font-family: var(--font-body);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display), sans-serif;
+    font-family: var(--font-display);
     letter-spacing: 0.03em;
   }
 
@@ -33,67 +36,32 @@
     height: 4px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-brand-gray-100;
+    @apply bg-brand-gray-900;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-brand-gray-400 rounded-full;
+    @apply bg-brand-gray-600 rounded-full;
   }
 }
 
 @layer components {
-  /* Deal card */
-  .deal-card {
-    @apply relative bg-white rounded-2xl overflow-hidden shadow-sm
-           border border-brand-gray-100 transition-all duration-200;
-  }
-  .deal-card:hover {
-    @apply shadow-md -translate-y-0.5;
-  }
-
-  /* Discount badge — green pill */
-  .discount-badge {
-    @apply absolute top-3 left-3 z-10 bg-accent text-white text-sm
-           px-2.5 py-0.5 rounded-full tracking-wider uppercase;
-    font-family: var(--font-display), sans-serif;
-  }
-  .discount-badge.tier-50 {
-    @apply bg-accent-dark;
-  }
-
-  /* Time badge */
-  .time-badge {
-    @apply absolute top-3 right-3 z-10 bg-black/70 text-white text-[10px]
-           font-medium px-2 py-0.5 rounded-full backdrop-blur-sm;
-  }
-
-  /* Filter pill */
-  .filter-pill {
-    @apply border border-brand-gray-200 text-brand-gray-600 text-sm uppercase
-           tracking-widest px-4 py-2 rounded-full transition-colors duration-150 cursor-pointer;
-    font-family: var(--font-display), sans-serif;
-  }
-  .filter-pill:hover,
-  .filter-pill.active {
-    @apply bg-accent text-white border-accent;
+  .font-display {
+    font-family: var(--font-display);
   }
 
   /* Section heading */
   .section-heading {
     @apply text-xs uppercase tracking-[0.25em] text-brand-gray-400 mb-2;
-    font-family: var(--font-display), sans-serif;
+    font-family: var(--font-display);
   }
 
-  /* Green CTA button */
-  .btn-green {
-    @apply block w-full text-center bg-accent text-white text-base uppercase
-           tracking-widest py-3 rounded-xl hover:bg-accent-dark transition-colors;
-    font-family: var(--font-display), sans-serif;
+  /* Filter pill */
+  .filter-pill {
+    @apply border border-white/10 text-brand-gray-400 text-sm uppercase
+           tracking-widest px-4 py-2 rounded-full transition-colors duration-150 cursor-pointer;
+    font-family: var(--font-display);
   }
-
-  /* Dark CTA button */
-  .btn-dark {
-    @apply block w-full text-center bg-brand-black text-white text-base uppercase
-           tracking-widest py-3 rounded-xl hover:bg-brand-gray-800 transition-colors;
-    font-family: var(--font-display), sans-serif;
+  .filter-pill:hover,
+  .filter-pill.active {
+    @apply bg-accent text-white border-accent;
   }
 }
