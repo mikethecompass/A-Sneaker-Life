@@ -63,6 +63,33 @@ export default defineConfig({
                   ])
               ),
             S.listItem()
+              .title("Releases")
+              .child(
+                S.list()
+                  .title("Releases")
+                  .items([
+                    S.listItem()
+                      .title("All Releases")
+                      .child(S.documentTypeList("release").title("All Releases")),
+                    S.listItem()
+                      .title("Upcoming")
+                      .child(
+                        S.documentList()
+                          .title("Upcoming")
+                          .filter('_type == "release" && releaseDate >= $today')
+                          .params({ today: new Date().toISOString().split("T")[0] })
+                          .defaultOrdering([{ field: "releaseDate", direction: "asc" }])
+                      ),
+                    S.listItem()
+                      .title("Raffles / Draws")
+                      .child(
+                        S.documentList()
+                          .title("Raffles / Draws")
+                          .filter('_type == "release" && releaseType == "raffle"')
+                      ),
+                  ])
+              ),
+            S.listItem()
               .title("Videos")
               .child(S.documentTypeList("video").title("Videos")),
             S.listItem()
