@@ -26,18 +26,26 @@ export function ReleaseBrandFilter({ brands, activeBrand }: ReleaseBrandFilterPr
   }
 
   return (
-    <div className="flex items-center gap-2 whitespace-nowrap pb-0.5">
+    <div className="flex items-center gap-2 whitespace-nowrap">
       <button
         onClick={() => handleClick(null)}
-        className={`filter-pill ${!activeBrand ? "active" : ""}`}
+        className={`text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors ${
+          !activeBrand
+            ? "bg-gray-900 text-white border-gray-900"
+            : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700"
+        }`}
       >
-        All Brands
+        All
       </button>
       {brands.map((brand) => (
         <button
           key={brand._id}
           onClick={() => handleClick(brand.slug?.current ?? null)}
-          className={`filter-pill ${activeBrand === brand.slug?.current ? "active" : ""}`}
+          className={`text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors ${
+            activeBrand === brand.slug?.current
+              ? "bg-gray-900 text-white border-gray-900"
+              : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700"
+          }`}
         >
           {brand.name}
         </button>
