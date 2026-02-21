@@ -1,8 +1,22 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
+import { Bebas_Neue, Inter } from "next/font/google";
 import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
+
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -83,7 +97,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${bebasNeue.variable} ${inter.variable}`}>
       <body className="min-h-screen flex flex-col pb-16 md:pb-0">
         <Header />
         <main className="flex-1">{children}</main>

@@ -19,7 +19,12 @@
 
   body {
     @apply bg-brand-white text-brand-black;
-    font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+    font-family: var(--font-body), Inter, system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display), sans-serif;
+    letter-spacing: 0.03em;
   }
 
   /* Minimal scrollbar */
@@ -47,8 +52,9 @@
 
   /* Discount badge — green pill */
   .discount-badge {
-    @apply absolute top-3 left-3 z-10 bg-accent text-white text-xs font-bold
-           px-2.5 py-1 rounded-full tracking-wide uppercase;
+    @apply absolute top-3 left-3 z-10 bg-accent text-white text-sm
+           px-2.5 py-0.5 rounded-full tracking-wider uppercase;
+    font-family: var(--font-display), sans-serif;
   }
   .discount-badge.tier-50 {
     @apply bg-accent-dark;
@@ -62,8 +68,9 @@
 
   /* Filter pill */
   .filter-pill {
-    @apply border border-brand-gray-200 text-brand-gray-600 text-xs uppercase
+    @apply border border-brand-gray-200 text-brand-gray-600 text-sm uppercase
            tracking-widest px-4 py-2 rounded-full transition-colors duration-150 cursor-pointer;
+    font-family: var(--font-display), sans-serif;
   }
   .filter-pill:hover,
   .filter-pill.active {
@@ -73,17 +80,20 @@
   /* Section heading */
   .section-heading {
     @apply text-xs uppercase tracking-[0.25em] text-brand-gray-400 mb-2;
+    font-family: var(--font-display), sans-serif;
   }
 
   /* Green CTA button */
   .btn-green {
-    @apply block w-full text-center bg-accent text-white text-xs font-bold uppercase
+    @apply block w-full text-center bg-accent text-white text-base uppercase
            tracking-widest py-3 rounded-xl hover:bg-accent-dark transition-colors;
+    font-family: var(--font-display), sans-serif;
   }
 
   /* Dark CTA button */
   .btn-dark {
-    @apply block w-full text-center bg-brand-black text-white text-xs font-bold uppercase
+    @apply block w-full text-center bg-brand-black text-white text-base uppercase
            tracking-widest py-3 rounded-xl hover:bg-brand-gray-800 transition-colors;
+    font-family: var(--font-display), sans-serif;
   }
 }
