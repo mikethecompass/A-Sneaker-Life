@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/deals/sync",
-      "schedule": "0 8 * * *"
+      "schedule": "0 */4 * * *"
     },
     {
       "path": "/api/twitter/post",
-      "schedule": "0 10 * * *"
+      "schedule": "0 9,13,17,21 * * *"
     },
     {
       "path": "/api/youtube/sync",
