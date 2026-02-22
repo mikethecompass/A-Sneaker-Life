@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
-import { Bebas_Neue, Inter } from "next/font/google";
+import { Anton, Inter } from "next/font/google";
 import { Header } from "@/components/ui/Header";
 import { Footer } from "@/components/ui/Footer";
 
-const bebasNeue = Bebas_Neue({
+const anton = Anton({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-display",
@@ -97,14 +97,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${bebasNeue.variable} ${inter.variable}`}>
+    <html lang="en" className={`${anton.variable} ${inter.variable}`}>
       <body className="min-h-screen flex flex-col pb-16 md:pb-0">
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
 
         {/* Mobile bottom nav */}
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-[#111827] border-t border-white/10
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-black border-t border-white/10
                         flex items-center justify-around h-16 px-2">
           {BOTTOM_NAV.map((item) => (
             <Link

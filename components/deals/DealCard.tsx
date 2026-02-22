@@ -33,12 +33,9 @@ function timeAgo(dateStr?: string | null): string {
   try {
     return formatDistanceToNow(new Date(dateStr), { addSuffix: false })
       .replace("about ", "")
-      .replace(" minutes", "m")
-      .replace(" minute", "m")
-      .replace(" hours", "h")
-      .replace(" hour", "h")
-      .replace(" days", "d")
-      .replace(" day", "d");
+      .replace(" minutes", "m").replace(" minute", "m")
+      .replace(" hours", "h").replace(" hour", "h")
+      .replace(" days", "d").replace(" day", "d");
   } catch {
     return "Just added";
   }
@@ -67,8 +64,12 @@ export function DealCard({
 
   return (
     <article className="deal-card group">
-      {/* Image area */}
-      <Link href={`/deals/${slug.current}`} className="block relative aspect-square bg-brand-gray-50 overflow-hidden">
+      {/* Image */}
+      <Link
+        href={`/deals/${slug.current}`}
+        className="block relative bg-gray-50 overflow-hidden"
+        style={{ aspectRatio: "1/1" }}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -79,11 +80,11 @@ export function DealCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-xs uppercase tracking-widest text-brand-gray-400">No Image</span>
+            <span className="text-xs uppercase tracking-widest text-gray-300">No Image</span>
           </div>
         )}
 
-        {/* Green discount badge */}
+        {/* Discount badge — flush to corner, no border radius */}
         <span className={`discount-badge ${isHot ? "tier-50" : ""}`}>
           {discountPercent}% OFF
         </span>
@@ -95,36 +96,34 @@ export function DealCard({
       {/* Content */}
       <div className="p-4">
         {brand && (
-          <p className="text-[10px] uppercase tracking-widest text-brand-gray-400 mb-0.5">
+          <p className="text-[11px] uppercase tracking-widest text-gray-400 mb-1">
             {brand.name}
           </p>
         )}
 
         <Link href={`/deals/${slug.current}`}>
-          <h2 className="text-sm font-semibold leading-snug line-clamp-2 mb-3 hover:text-accent transition-colors">
+          <h2 className="text-sm leading-snug line-clamp-2 mb-3 hover:underline text-black">
             {title}
           </h2>
         </Link>
 
         {/* Pricing */}
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="text-lg font-bold text-accent">
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <span className="text-xl font-bold text-black">
             {formatPrice(salePrice, currency)}
           </span>
-          <span className="text-xs text-brand-gray-400 line-through">
+          <span className="text-xs text-gray-400 line-through">
             {formatPrice(originalPrice, currency)}
           </span>
         </div>
-        <p className="text-xs text-accent font-medium mb-3">
+        <p className="text-xs text-accent font-semibold mb-3">
           Save {formatPrice(savings, currency)}
         </p>
 
-        {/* Expiry warning */}
         {expiresLabel && (
-          <p className="text-xs text-brand-gray-400 mb-3">{expiresLabel}</p>
+          <p className="text-xs text-gray-400 mb-3">{expiresLabel}</p>
         )}
 
-        {/* CTA */}
         <a
           href={affiliateUrl}
           target="_blank"
@@ -135,7 +134,7 @@ export function DealCard({
           Shop Deal →
         </a>
 
-        <p className="text-center text-[10px] text-brand-gray-400 mt-1.5">#ad</p>
+        <p className="text-center text-[10px] text-gray-300 mt-2">#ad</p>
       </div>
     </article>
   );

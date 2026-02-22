@@ -84,9 +84,12 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
     <div className="min-h-screen bg-white">
       {/* Page header */}
       <div className="border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-10 pb-6">
-          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-1">
-            Release Calendar
+        <div className="max-w-[1200px] mx-auto px-5 pt-10 pb-6">
+          <h1
+            className="text-5xl sm:text-6xl text-black mb-1"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            RELEASE CALENDAR
           </h1>
           <p className="text-sm text-gray-500">
             Upcoming drops from Nike, Jordan, Adidas, New Balance and more
@@ -96,14 +99,14 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
 
       {/* Brand filter bar */}
       <div className="border-b border-gray-200 bg-white sticky top-14 z-40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 overflow-x-auto">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-3 overflow-x-auto">
           <Suspense>
             <ReleaseBrandFilter brands={brandsWithReleases} activeBrand={activeBrand} />
           </Suspense>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-10">
         {filtered.length === 0 && (
           <div className="py-24 text-center">
             <p className="text-sm text-gray-400 uppercase tracking-widest">
@@ -115,7 +118,10 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
         {/* Upcoming */}
         {upcomingGroups.length > 0 && (
           <section className="mb-12">
-            <h2 className="text-xs uppercase tracking-widest text-accent font-semibold mb-6">
+            <h2
+              className="text-xs uppercase tracking-widest text-gray-400 mb-6"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               Upcoming Drops
             </h2>
             {upcomingGroups.map(([date, releases]) => {
@@ -124,18 +130,27 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
                 <div key={date} className="mb-8">
                   {/* Date header */}
                   <div className="flex items-center gap-4 mb-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold text-gray-900">{month} {day}</span>
-                      <span className="text-sm text-gray-400 font-medium">{weekday}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="text-2xl text-black"
+                        style={{ fontFamily: "var(--font-display)" }}
+                      >
+                        {month} {day}
+                      </span>
+                      <span className="text-sm text-gray-400 uppercase tracking-widest"
+                            style={{ fontFamily: "var(--font-display)" }}>
+                        {weekday}
+                      </span>
                     </div>
-                    <div className="flex-1 h-px bg-gray-100" />
-                    <span className="text-xs text-gray-400">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs text-gray-400 uppercase tracking-widest"
+                          style={{ fontFamily: "var(--font-display)" }}>
                       {releases.length} {releases.length === 1 ? "drop" : "drops"}
                     </span>
                   </div>
 
                   {/* Release rows */}
-                  <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 px-4">
+                  <div className="border border-gray-200 divide-y divide-gray-100 px-4">
                     {releases.map((r) => (
                       <ReleaseRow key={r._id} {...r} />
                     ))}
@@ -149,7 +164,10 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
         {/* Recently released */}
         {pastGroups.length > 0 && (
           <section>
-            <h2 className="text-xs uppercase tracking-widest text-gray-400 font-semibold mb-6">
+            <h2
+              className="text-xs uppercase tracking-widest text-gray-400 mb-6"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               Recently Released
             </h2>
             {pastGroups.map(([date, releases]) => {
@@ -157,14 +175,22 @@ export default async function ReleasesPage({ searchParams }: ReleasesPageProps) 
               return (
                 <div key={date} className="mb-8">
                   <div className="flex items-center gap-4 mb-2">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-2xl font-bold text-gray-400">{month} {day}</span>
-                      <span className="text-sm text-gray-300 font-medium">{weekday}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span
+                        className="text-2xl text-gray-400"
+                        style={{ fontFamily: "var(--font-display)" }}
+                      >
+                        {month} {day}
+                      </span>
+                      <span className="text-sm text-gray-300 uppercase tracking-widest"
+                            style={{ fontFamily: "var(--font-display)" }}>
+                        {weekday}
+                      </span>
                     </div>
                     <div className="flex-1 h-px bg-gray-100" />
                   </div>
 
-                  <div className="rounded-xl border border-gray-100 divide-y divide-gray-100 px-4">
+                  <div className="border border-gray-200 divide-y divide-gray-100 px-4">
                     {releases.map((r) => (
                       <ReleaseRow key={r._id} {...r} />
                     ))}

@@ -1,61 +1,60 @@
 import Link from "next/link";
 
 const NAV_LINKS = [
-  { label: "All Deals", href: "/deals" },
+  { label: "Deals", href: "/deals" },
   { label: "50%+ Off", href: "/deals?tier=50" },
   { label: "30% Off", href: "/deals?tier=30" },
   { label: "Releases", href: "/releases" },
   { label: "Videos", href: "/videos" },
 ];
 
-const displayFont = { fontFamily: "var(--font-display)" } as const;
-
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-[#111827] border-b border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-14">
+    <header className="sticky top-0 z-50 bg-black border-b border-white/10">
+      <div className="max-w-[1200px] mx-auto px-5">
+        <div className="flex items-center justify-between h-[65px]">
+
           {/* Wordmark */}
-          <Link href="/" className="flex items-center gap-2">
-            <span className="w-7 h-7 rounded-full bg-accent flex items-center justify-center text-white text-[10px] font-black uppercase leading-none">
-              ASL
-            </span>
-            <span className="text-xl uppercase tracking-[0.15em] text-white" style={displayFont}>
-              A Sneaker Life
-            </span>
+          <Link
+            href="/"
+            className="text-white text-2xl tracking-widest hover:text-gray-300 transition-colors"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            A SNEAKER LIFE
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden md:flex items-center gap-7">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-base uppercase tracking-widest text-white/60 hover:text-white transition-colors"
-                style={displayFont}
+                className="text-[13px] uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 {link.label}
               </Link>
             ))}
           </nav>
 
-          {/* Mobile */}
-          <div className="md:hidden flex items-center gap-4">
+          {/* Mobile — two key links */}
+          <div className="md:hidden flex items-center gap-5">
             <Link
               href="/deals"
-              className="text-base uppercase tracking-widest text-white/60 hover:text-white"
-              style={displayFont}
+              className="text-[13px] uppercase tracking-widest text-gray-400 hover:text-white"
+              style={{ fontFamily: "var(--font-display)" }}
             >
               Deals
             </Link>
             <Link
-              href="/videos"
-              className="text-base uppercase tracking-widest text-white/60 hover:text-white"
-              style={displayFont}
+              href="/releases"
+              className="text-[13px] uppercase tracking-widest text-gray-400 hover:text-white"
+              style={{ fontFamily: "var(--font-display)" }}
             >
-              Videos
+              Releases
             </Link>
           </div>
+
         </div>
       </div>
     </header>

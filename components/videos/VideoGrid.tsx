@@ -21,8 +21,8 @@ export function VideoGrid({ videos }: { videos: VideoItem[] }) {
   if (!videos.length) {
     return (
       <div className="py-20 text-center">
-        <p className="text-sm text-brand-gray-400 uppercase tracking-widest">
-          No videos yet. Subscribe on YouTube!
+        <p className="text-sm text-gray-400 uppercase tracking-widest">
+          No videos yet — subscribe on YouTube!
         </p>
       </div>
     );
@@ -38,8 +38,8 @@ export function VideoGrid({ videos }: { videos: VideoItem[] }) {
           rel="noopener noreferrer"
           className="group block"
         >
-          {/* Thumbnail */}
-          <div className="relative aspect-video bg-brand-gray-100 overflow-hidden mb-3">
+          {/* Thumbnail — no rounding */}
+          <div className="relative aspect-video bg-gray-100 overflow-hidden mb-3 border border-gray-200 group-hover:border-black transition-colors">
             {video.thumbnailUrl ? (
               <Image
                 src={video.thumbnailUrl}
@@ -49,29 +49,26 @@ export function VideoGrid({ videos }: { videos: VideoItem[] }) {
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-xs uppercase tracking-widest text-brand-gray-400">
-                  YouTube
-                </span>
+              <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                <span className="text-xs uppercase tracking-widest text-gray-400">YouTube</span>
               </div>
             )}
 
-            {/* Play overlay */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-200 flex items-center justify-center">
-              <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center
-                              opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {/* Play button overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+              <div className="w-12 h-12 bg-white flex items-center justify-center
+                              opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="w-0 h-0 ml-1 border-t-[8px] border-b-[8px] border-l-[14px]
-                                border-t-transparent border-b-transparent border-l-brand-black" />
+                                border-t-transparent border-b-transparent border-l-black" />
               </div>
             </div>
           </div>
 
-          {/* Metadata */}
-          <h3 className="text-sm font-medium leading-snug line-clamp-2 group-hover:underline mb-1">
+          <h3 className="text-sm font-semibold leading-snug line-clamp-2 text-black group-hover:underline mb-1">
             {video.title}
           </h3>
           {video.viewCount !== undefined && (
-            <p className="text-xs text-brand-gray-400">{formatViews(video.viewCount)}</p>
+            <p className="text-xs text-gray-400">{formatViews(video.viewCount)}</p>
           )}
         </a>
       ))}

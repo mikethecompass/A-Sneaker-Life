@@ -18,22 +18,14 @@ export function ReleaseBrandFilter({ brands, activeBrand }: ReleaseBrandFilterPr
   const pathname = usePathname();
 
   function handleClick(slug: string | null) {
-    if (slug) {
-      router.push(`${pathname}?brand=${slug}`);
-    } else {
-      router.push(pathname);
-    }
+    router.push(slug ? `${pathname}?brand=${slug}` : pathname);
   }
 
   return (
     <div className="flex items-center gap-2 whitespace-nowrap">
       <button
         onClick={() => handleClick(null)}
-        className={`text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors ${
-          !activeBrand
-            ? "bg-gray-900 text-white border-gray-900"
-            : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700"
-        }`}
+        className={`filter-pill ${!activeBrand ? "active" : ""}`}
       >
         All
       </button>
@@ -41,11 +33,7 @@ export function ReleaseBrandFilter({ brands, activeBrand }: ReleaseBrandFilterPr
         <button
           key={brand._id}
           onClick={() => handleClick(brand.slug?.current ?? null)}
-          className={`text-xs font-semibold px-4 py-1.5 rounded-full border transition-colors ${
-            activeBrand === brand.slug?.current
-              ? "bg-gray-900 text-white border-gray-900"
-              : "bg-white text-gray-500 border-gray-200 hover:border-gray-400 hover:text-gray-700"
-          }`}
+          className={`filter-pill ${activeBrand === brand.slug?.current ? "active" : ""}`}
         >
           {brand.name}
         </button>

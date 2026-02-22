@@ -20,12 +20,12 @@ export interface ReleaseItem {
   goatUrl?: string;
 }
 
-const RELEASE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  fcfs:    { label: "FCFS",     color: "bg-blue-100 text-blue-700" },
-  raffle:  { label: "Raffle",   color: "bg-purple-100 text-purple-700" },
-  snkrs:   { label: "SNKRS",    color: "bg-orange-100 text-orange-700" },
-  instore: { label: "In-Store", color: "bg-gray-100 text-gray-600" },
-  online:  { label: "Online",   color: "bg-green-100 text-green-700" },
+const RELEASE_TYPE_LABELS: Record<string, string> = {
+  fcfs:    "FCFS",
+  raffle:  "Raffle",
+  snkrs:   "SNKRS",
+  instore: "In-Store",
+  online:  "Online",
 };
 
 function formatPrice(amount: number, currency = "USD"): string {
@@ -60,23 +60,18 @@ export function ReleaseRow({
   stockxUrl,
 }: ReleaseItem) {
   const released = isPast(releaseDate);
-  const typeInfo = releaseType ? RELEASE_TYPE_LABELS[releaseType] : null;
+  const typeLabel = releaseType ? RELEASE_TYPE_LABELS[releaseType] : null;
 
   return (
-    <div className="flex items-center gap-4 sm:gap-6 py-5 border-b border-gray-100 last:border-0 group">
+    <div className="flex items-center gap-4 sm:gap-5 py-4 border-b border-gray-100 last:border-0 group">
+
       {/* Thumbnail */}
       <Link
         href={`/releases/${slug.current}`}
-        className="shrink-0 relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-gray-50 border border-gray-100"
+        className="shrink-0 relative w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] bg-gray-50 border border-gray-200 overflow-hidden"
       >
         {imageUrl ? (
-          <Image
-            src={imageUrl}
-            alt={title}
-            fill
-            sizes="112px"
-            className="object-contain p-2"
-          />
+          <Image src={imageUrl} alt={title} fill sizes="100px" className="object-contain p-2" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="text-[9px] uppercase tracking-widest text-gray-300">No Image</span>
@@ -84,36 +79,44 @@ export function ReleaseRow({
         )}
       </Link>
 
-      {/* Main info */}
+      {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-1.5 mb-1">
+        <div className="flex flex-wrap items-center gap-2 mb-0.5">
           {brand && (
-            <span className="text-[10px] uppercase tracking-widest text-gray-400 font-medium">
+            <span className="text-[11px] uppercase tracking-widest text-gray-400">
               {brand.name}
             </span>
           )}
-          {typeInfo && (
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold ${typeInfo.color}`}>
-              {typeInfo.label}
+          {typeLabel && (
+            <span
+              className="text-[10px] uppercase tracking-widest border border-gray-300 text-gray-500 px-1.5 py-0.5"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {typeLabel}
             </span>
           )}
           {released && (
-            <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">
+            <span
+              className="text-[10px] uppercase tracking-widest bg-gray-100 text-gray-400 px-1.5 py-0.5"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
               Released
             </span>
           )}
         </div>
 
         <Link href={`/releases/${slug.current}`}>
-          <h2 className="text-base sm:text-lg font-bold leading-tight line-clamp-2 text-gray-900 group-hover:text-accent transition-colors mb-0.5">
+          <h2
+            className="text-base sm:text-lg font-bold leading-tight line-clamp-2 text-black group-hover:underline mb-0.5"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
             {title}
           </h2>
         </Link>
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-400">
+        <div className="flex flex-wrap gap-x-3 text-xs text-gray-400">
           {colorway && <span className="line-clamp-1">{colorway}</span>}
           {sku && <span className="hidden sm:inline">{sku}</span>}
-          {gender && <span className="capitalize hidden sm:inline">{gender === "mens" ? "Men's" : gender === "womens" ? "Women's" : gender}</span>}
           {releaseTime && !released && <span>{releaseTime}</span>}
         </div>
       </div>
@@ -121,7 +124,7 @@ export function ReleaseRow({
       {/* Price + CTA */}
       <div className="shrink-0 flex flex-col items-end gap-2">
         {retailPrice ? (
-          <span className="text-lg font-bold text-gray-900">
+          <span className="text-lg font-bold text-black">
             {formatPrice(retailPrice, currency)}
           </span>
         ) : (
@@ -135,7 +138,8 @@ export function ReleaseRow({
                 href={stockxUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                className="text-[11px] uppercase tracking-widest border border-gray-300 text-gray-600 px-3 py-1.5 hover:border-black hover:text-black transition-colors whitespace-nowrap"
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 StockX
               </a>
@@ -145,7 +149,8 @@ export function ReleaseRow({
                 href={affiliateUrl}
                 target="_blank"
                 rel="noopener noreferrer sponsored"
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent-dark transition-colors whitespace-nowrap"
+                className="text-[11px] uppercase tracking-widest bg-black text-white px-3 py-1.5 hover:bg-gray-800 transition-colors whitespace-nowrap"
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 Shop
               </a>
@@ -156,7 +161,8 @@ export function ReleaseRow({
             href={affiliateUrl}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-accent text-accent hover:bg-accent hover:text-white transition-colors whitespace-nowrap"
+            className="text-[11px] uppercase tracking-widest border border-black text-black px-3 py-1.5 hover:bg-black hover:text-white transition-colors whitespace-nowrap"
+            style={{ fontFamily: "var(--font-display)" }}
           >
             Notify Me
           </a>
