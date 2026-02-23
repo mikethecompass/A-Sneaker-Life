@@ -39,27 +39,42 @@ export interface NormalizedDeal extends RawDeal {
   slug: string;
 }
 
-// ─── Impact Radius raw API shapes ─────────────────────────────────────────────
+// ─── Impact Radius raw API shapes (Catalog Items) ────────────────────────────
 
-export interface ImpactProduct {
+export interface ImpactCatalog {
   Id: string;
   Name: string;
-  Description: string;
-  BrandName: string;
-  ImageUrl: string;
-  DirectUrl: string;
-  OriginalPrice: number;
-  SalePrice: number;
-  Discount: number;
-  Currency: string;
-  ExpirationDate: string | null;
-  Categories: string[];
+  AdvertiserId?: string;
+  AdvertiserName?: string;
+}
+
+export interface ImpactCatalogItem {
+  CatalogItemId?: string;
+  Id?: string;
+  Name?: string;
+  Description?: string;
+  Url?: string;
+  ImageUrl?: string;
+  OriginalPrice?: string | number;
+  CurrentPrice?: string | number;
+  SalePrice?: string | number;
+  Currency?: string;
+  Manufacturer?: string;
+  BrandName?: string;
+  Labels?: string[];
+  Categories?: string[];
+  Sku?: string;
   SKU?: string;
 }
 
-export interface ImpactApiResponse {
+export interface ImpactCatalogsResponse {
   "@type": string;
-  Items: ImpactProduct[];
+  Catalogs: ImpactCatalog[];
+}
+
+export interface ImpactCatalogItemsResponse {
+  "@type": string;
+  Items: ImpactCatalogItem[];
   TotalCount: number;
 }
 
