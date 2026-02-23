@@ -160,7 +160,7 @@ export default async function HomePage() {
       {/* ── Air Jordan Release Dates ── */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8 border-t border-gray-200">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-black uppercase tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-xl font-black uppercase tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
             Air Jordan Release Dates
           </h2>
           <Link href="/releases?brand=jordan" className="text-[12px] font-bold uppercase tracking-widest text-gray-400 hover:text-black">
@@ -214,7 +214,7 @@ export default async function HomePage() {
       {/* ── Sneaker Release Dates ── */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8 border-t border-gray-200">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-black uppercase tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-xl font-black uppercase tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
             Sneaker Release Dates
           </h2>
           <Link href="/releases" className="text-[12px] font-bold uppercase tracking-widest text-gray-400 hover:text-black">
@@ -294,7 +294,7 @@ export default async function HomePage() {
         <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8 border-t border-gray-200">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-black uppercase tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+              <h2 className="text-xl font-black uppercase tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
                 50%+ Off Deals
               </h2>
               <span className="bg-black text-white text-[10px] font-bold uppercase tracking-widest px-2 py-0.5">
@@ -314,7 +314,7 @@ export default async function HomePage() {
       {/* ── Latest Deals ── */}
       <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8 border-t border-gray-200">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-black uppercase tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+          <h2 className="text-xl font-black uppercase tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
             Latest Sneaker Deals
           </h2>
           <Link href="/deals" className="text-[12px] font-bold uppercase tracking-widest text-gray-400 hover:text-black">
@@ -333,7 +333,7 @@ export default async function HomePage() {
       {videos.length > 0 && (
         <section className="max-w-[1200px] mx-auto px-4 sm:px-5 py-8 border-t border-gray-200">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-black uppercase tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
+            <h2 className="text-xl font-black uppercase tracking-wide" style={{ fontFamily: "var(--font-display)" }}>
               Latest Videos
             </h2>
             <Link href="/videos" className="text-[12px] font-bold uppercase tracking-widest text-gray-400 hover:text-black">
