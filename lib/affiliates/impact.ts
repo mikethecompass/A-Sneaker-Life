@@ -1,37 +1,31 @@
 /**
- * Impact Radius (Impact.com) Product Search API client
+ * Impact Radius (Impact.com) API client
  *
- * Docs: https://developer.impact.com/default#operations-Ads-GetAds
+ * Queries three endpoints in parallel:
+ *   1. /Ads        — display/promotional ads
+ *   2. /Deals      — curated deals from advertisers
+ *   3. /Promotions — active promotions (% off, coupon codes, etc.)
  *
  * Authentication: HTTP Basic Auth
  *   Username = Account SID  (IMPACT_ACCOUNT_SID)
- *   Password = API Key      (IMPACT_API_KEY)
- *
- * We search specifically for sneaker/footwear ads and filter
- * by discount percentage tiers.
+ *   Password = Auth Token   (IMPACT_API_KEY)
  */
 
-import type { ImpactApiResponse, RawDeal } from "./types";
+import type { RawDeal } from "./types";
 
 const IMPACT_BASE_URL = "https://api.impact.com";
 
-// Sneaker-relevant category keywords for filtering Impact results
 const SNEAKER_KEYWORDS = [
-  "sneaker",
-  "shoe",
-  "footwear",
-  "running",
-  "basketball",
-  "jordan",
-  "nike",
-  "adidas",
-  "new balance",
-  "puma",
-  "reebok",
-  "converse",
-  "vans",
-  "asics",
-  "under armour",
+  "sneaker", "shoe", "footwear", "running", "basketball",
+  "jordan", "nike", "adidas", "new balance", "puma",
+  "reebok", "converse", "vans", "asics", "under armour",
+  "foot locker", "champs", "kicks",
+];
+
+const SNEAKER_BRANDS = [
+  "foot locker", "champs sports", "footaction", "new balance",
+  "adidas", "kicks crew", "stockx", "grailed", "brooks", "salomon",
+  "nike", "jordan",
 ];
 
 function buildBasicAuth(): string {
@@ -41,16 +35,12 @@ function buildBasicAuth(): string {
   return Buffer.from(`${sid}:${key}`).toString("base64");
 }
 
-function isSneakerRelated(product: { Name: string; Description: string; Categories: string[] }): boolean {
-  const haystack = [
-    product.Name,
-    product.Description,
-    ...product.Categories,
-  ]
-    .join(" ")
-    .toLowerCase();
-
-  return SNEAKER_KEYWORDS.some((kw) => haystack.includes(kw));
+function isSneakerRelated(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    SNEAKER_KEYWORDS.some((kw) => lower.includes(kw)) ||
+    SNEAKER_BRANDS.some((b) => lower.includes(b))
+  );
 }
 
 function calcDiscount(original: number, sale: number): number {
@@ -66,66 +56,49 @@ function slugify(text: string): string {
     .slice(0, 96);
 }
 
-/**
- * Fetch deals from Impact Radius.
- *
- * @param minDiscount Only return deals at or above this % off (default 10)
- * @param pageSize    Number of results per page (max 100 per Impact API)
- */
-export async function fetchImpactDeals(
-  minDiscount = 10,
-  pageSize = 100
-): Promise<RawDeal[]> {
-  const auth = buildBasicAuth();
+function getAccountSid(): string {
+  const sid = process.env.IMPACT_ACCOUNT_SID;
+  if (!sid) throw new Error("Missing IMPACT_ACCOUNT_SID");
+  return sid;
+}
 
-  // Impact's Ads endpoint supports keyword search and pagination
+// ── Fetch from /Ads endpoint ───────────────────────────────────────────────────
+async function fetchAds(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
   const params = new URLSearchParams({
-    PageSize: String(pageSize),
-    // Request only sale/deal type ads
+    PageSize: "100",
     PromotionType: "SALE",
-    // Text search for sneakers in ad name
-    Text: "sneaker OR shoes OR footwear OR Jordan OR Nike OR Adidas",
-    // Only active/non-expired ads
+    Text: "sneaker OR shoes OR footwear OR Jordan OR Nike OR Adidas OR Foot Locker",
     AdStatus: "ACTIVE",
   });
 
-  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Ads?${params}`;
+  const res = await fetch(
+    `${IMPACT_BASE_URL}/Mediapartners/${sid}/Ads?${params}`,
+    {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+      next: { revalidate: 1800 },
+    }
+  );
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-      Accept: "application/json",
-    },
-    next: { revalidate: 1800 }, // cache 30 min for Next.js fetch cache
-  });
+  if (!res.ok) return [];
 
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Impact API error ${res.status}: ${body}`);
-  }
-
-  const data: ImpactApiResponse = await res.json();
-
+  const data = await res.json();
   const deals: RawDeal[] = [];
 
   for (const item of data.Items ?? []) {
-    // Skip non-sneaker items
-    if (!isSneakerRelated(item)) continue;
+    if (!isSneakerRelated(`${item.Name} ${item.Description} ${item.BrandName}`)) continue;
 
     const originalPrice = Number(item.OriginalPrice) || 0;
     const salePrice = Number(item.SalePrice) || 0;
-
-    // Skip items with no pricing data
     if (!originalPrice || !salePrice) continue;
 
-    const discountPercent =
-      item.Discount != null ? Number(item.Discount) : calcDiscount(originalPrice, salePrice);
+    const discountPercent = item.Discount != null
+      ? Number(item.Discount)
+      : calcDiscount(originalPrice, salePrice);
 
-    // Apply minimum discount filter
     if (discountPercent < minDiscount) continue;
 
     deals.push({
-      networkId: item.Id,
+      networkId: `ad-${item.Id}`,
       network: "impact",
       title: item.Name,
       description: item.Description ?? "",
@@ -144,4 +117,141 @@ export async function fetchImpactDeals(
   }
 
   return deals;
+}
+
+// ── Fetch from /Deals endpoint ─────────────────────────────────────────────────
+async function fetchDeals(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
+  const params = new URLSearchParams({
+    PageSize: "100",
+    Status: "ACTIVE",
+  });
+
+  const res = await fetch(
+    `${IMPACT_BASE_URL}/Mediapartners/${sid}/Deals?${params}`,
+    {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+      next: { revalidate: 1800 },
+    }
+  );
+
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  const deals: RawDeal[] = [];
+
+  for (const item of data.Items ?? []) {
+    const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.AdvertiserName ?? ""}`;
+    if (!isSneakerRelated(combined)) continue;
+
+    const originalPrice = Number(item.OriginalPrice) || Number(item.Price) || 0;
+    const salePrice = Number(item.SalePrice) || Number(item.DiscountedPrice) || 0;
+
+    // Some deals are % off without explicit prices — still include them
+    const discountPercent = item.DiscountPercent != null
+      ? Number(item.DiscountPercent)
+      : calcDiscount(originalPrice, salePrice);
+
+    if (discountPercent < minDiscount) continue;
+    if (originalPrice && salePrice && salePrice >= originalPrice) continue;
+
+    deals.push({
+      networkId: `deal-${item.Id}`,
+      network: "impact",
+      title: item.Name ?? item.AdvertiserName,
+      description: item.Description ?? "",
+      brand: item.AdvertiserName ?? "",
+      imageUrl: item.ImageUrl ?? item.BannerUrl ?? "",
+      rawAffiliateUrl: item.TrackingUrl ?? item.LandingPageUrl ?? "",
+      originalPrice: originalPrice || salePrice,
+      salePrice: salePrice || originalPrice,
+      discountPercent,
+      currency: item.Currency ?? "USD",
+      expiresAt: item.EndDate ?? null,
+      categories: [],
+      slug: slugify(`${item.AdvertiserName}-${item.Name}-${item.Id}`),
+    });
+  }
+
+  return deals;
+}
+
+// ── Fetch from /Promotions endpoint ───────────────────────────────────────────
+async function fetchPromotions(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
+  const params = new URLSearchParams({
+    PageSize: "100",
+    PromotionType: "DISCOUNT",
+    Status: "ACTIVE",
+  });
+
+  const res = await fetch(
+    `${IMPACT_BASE_URL}/Mediapartners/${sid}/Promotions?${params}`,
+    {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+      next: { revalidate: 1800 },
+    }
+  );
+
+  if (!res.ok) return [];
+
+  const data = await res.json();
+  const deals: RawDeal[] = [];
+
+  for (const item of data.Items ?? []) {
+    const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.AdvertiserName ?? ""}`;
+    if (!isSneakerRelated(combined)) continue;
+
+    const discountPercent = Number(item.DiscountPercent) || 0;
+    if (discountPercent < minDiscount) continue;
+
+    const originalPrice = Number(item.OriginalPrice) || Number(item.Price) || 0;
+    const salePrice = originalPrice
+      ? Math.round(originalPrice * (1 - discountPercent / 100))
+      : 0;
+
+    deals.push({
+      networkId: `promo-${item.Id}`,
+      network: "impact",
+      title: item.Name ?? `${item.AdvertiserName} — ${discountPercent}% Off`,
+      description: item.Description ?? "",
+      brand: item.AdvertiserName ?? "",
+      imageUrl: item.ImageUrl ?? "",
+      rawAffiliateUrl: item.TrackingUrl ?? item.LandingPageUrl ?? "",
+      originalPrice,
+      salePrice,
+      discountPercent,
+      currency: item.Currency ?? "USD",
+      expiresAt: item.EndDate ?? null,
+      categories: [],
+      slug: slugify(`${item.AdvertiserName}-${item.Name}-${item.Id}`),
+    });
+  }
+
+  return deals;
+}
+
+// ── Main export ────────────────────────────────────────────────────────────────
+export async function fetchImpactDeals(minDiscount = 10): Promise<RawDeal[]> {
+  const auth = buildBasicAuth();
+  const sid = getAccountSid();
+
+  // Query all three endpoints in parallel
+  const [adsResult, dealsResult, promosResult] = await Promise.allSettled([
+    fetchAds(auth, sid, minDiscount),
+    fetchDeals(auth, sid, minDiscount),
+    fetchPromotions(auth, sid, minDiscount),
+  ]);
+
+  const all: RawDeal[] = [];
+
+  if (adsResult.status === "fulfilled") all.push(...adsResult.value);
+  if (dealsResult.status === "fulfilled") all.push(...dealsResult.value);
+  if (promosResult.status === "fulfilled") all.push(...promosResult.value);
+
+  // Deduplicate by networkId
+  const seen = new Set<string>();
+  return all.filter((d) => {
+    if (seen.has(d.networkId)) return false;
+    seen.add(d.networkId);
+    return true;
+  });
 }
