@@ -1,37 +1,25 @@
 /**
- * Commission Junction (CJ Affiliate) Product Search API client
+ * Commission Junction (CJ Affiliate) — GraphQL API client
  *
- * CJ's Product Catalog Search API returns XML, not JSON.
- * We fetch XML and parse it manually.
+ * Uses the new ads.api.cj.com GraphQL endpoint.
+ * Old product-search.api.cj.com v2 is deprecated.
  *
  * Authentication: Bearer token via CJ_API_KEY
  */
 
 import type { RawDeal } from "./types";
 
-const CJ_BASE_URL = "https://product-search.api.cj.com/v2";
+const CJ_GRAPHQL_URL = "https://ads.api.cj.com/query";
 
-const SNEAKER_SEARCH_TERMS = [
+const SNEAKER_KEYWORDS = [
   "sneakers",
-  "athletic shoes",
   "running shoes",
   "basketball shoes",
-  "Nike shoes",
+  "athletic shoes",
   "Jordan shoes",
+  "Nike shoes",
   "Puma shoes",
   "training shoes",
-  "sport shoes",
-];
-
-// CJ advertiser IDs for approved sneaker/apparel partners
-const SNEAKER_ADVERTISER_IDS = [
-  "4942550", // Nike
-  "5881002", // Puma US
-  "7345657", // Dick's Sporting Goods
-  "5632470", // BSTN
-  "6008402", // Li Ning Way of Wade
-  "5253058", // Lacoste US
-  "2844548", // Columbia Sportswear
 ];
 
 function slugify(text: string): string {
@@ -47,115 +35,141 @@ function calcDiscount(original: number, sale: number): number {
   return Math.round(((original - sale) / original) * 100);
 }
 
-/** Pull a single XML tag value from raw XML string */
-function xmlVal(xml: string, tag: string): string {
-  const match = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
-  return match ? match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim() : "";
+interface CjGraphQLProduct {
+  id: string;
+  title: string;
+  description: string;
+  price: { amount: string; currency: string } | null;
+  salePrice: { amount: string; currency: string } | null;
+  imageLink: string;
+  link: string;
+  brand: string;
+  advertiserId: string;
+  advertiserName: string;
 }
 
-/** Parse CJ XML product list into raw product objects */
-function parseXmlProducts(xml: string): Array<Record<string, string>> {
-  const products: Array<Record<string, string>> = [];
-  const productBlocks = xml.match(/<product>([\s\S]*?)<\/product>/gi) ?? [];
-
-  for (const block of productBlocks) {
-    const fields = [
-      "link-id", "link-name", "description", "advertiser",
-      "img-url", "buy-url", "price", "sale-price", "currency",
-      "promotion-end-date", "sku",
-    ];
-    const product: Record<string, string> = {};
-    for (const field of fields) {
-      product[field] = xmlVal(block, field);
-    }
-    products.push(product);
-  }
-
-  return products;
+interface CjGraphQLResponse {
+  data?: {
+    products?: {
+      resultList: CjGraphQLProduct[];
+    };
+  };
+  errors?: Array<{ message: string }>;
 }
 
-async function fetchPage(
-  keyword: string,
-  websiteId: string,
+async function queryProducts(
+  companyId: string,
   token: string,
-): Promise<Array<Record<string, string>>> {
-  const params = new URLSearchParams({
-    "website-id": websiteId,
-    keywords: keyword,
-    "page-number": "1",
-    "records-per-page": "50",
-    "advertiser-ids": SNEAKER_ADVERTISER_IDS.join(","),
-  });
+  keywords: string[],
+): Promise<CjGraphQLProduct[]> {
+  const query = `{
+    products(
+      companyId: "${companyId}"
+      keywords: ${JSON.stringify(keywords)}
+      partnerStatus: JOINED
+      limit: 100
+    ) {
+      resultList {
+        id
+        title
+        description
+        price { amount currency }
+        salePrice { amount currency }
+        imageLink
+        link
+        brand
+        advertiserId
+        advertiserName
+      }
+    }
+  }`;
 
-  const url = `${CJ_BASE_URL}/product-search?${params}`;
-
-  const res = await fetch(url, {
+  const res = await fetch(CJ_GRAPHQL_URL, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "text/xml",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({ query }),
+    // @ts-expect-error Next.js fetch extension
     next: { revalidate: 1800 },
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`CJ API error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`CJ GraphQL error ${res.status}: ${body.slice(0, 200)}`);
   }
 
-  const xml = await res.text();
-  return parseXmlProducts(xml);
+  const data: CjGraphQLResponse = await res.json();
+
+  if (data.errors?.length) {
+    throw new Error(`CJ GraphQL errors: ${data.errors.map((e) => e.message).join(", ")}`);
+  }
+
+  return data.data?.products?.resultList ?? [];
 }
 
 export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
   const token = process.env.CJ_API_KEY;
-  const websiteId = process.env.CJ_WEBSITE_ID;
+  const companyId = process.env.CJ_WEBSITE_ID;
 
   if (!token) throw new Error("Missing CJ_API_KEY");
-  if (!websiteId) throw new Error("Missing CJ_WEBSITE_ID");
+  if (!companyId) throw new Error("Missing CJ_WEBSITE_ID");
 
   const seen = new Set<string>();
   const deals: RawDeal[] = [];
 
-  for (const keyword of SNEAKER_SEARCH_TERMS) {
-    let products: Array<Record<string, string>>;
+  // Query in batches of keywords to maximize results
+  const keywordBatches = [
+    SNEAKER_KEYWORDS.slice(0, 4),
+    SNEAKER_KEYWORDS.slice(4),
+  ];
+
+  for (const keywords of keywordBatches) {
+    let products: CjGraphQLProduct[];
 
     try {
-      products = await fetchPage(keyword, websiteId, token);
+      products = await queryProducts(companyId, token, keywords);
     } catch (err) {
-      console.error(`CJ fetch failed for keyword "${keyword}":`, err);
+      console.error("CJ GraphQL fetch failed:", err);
       continue;
     }
 
     for (const product of products) {
-      const linkId = product["link-id"];
-      if (!linkId || seen.has(linkId)) continue;
-      seen.add(linkId);
+      if (!product.id || seen.has(product.id)) continue;
+      seen.add(product.id);
 
-      const originalPrice = parseFloat(product["price"]) || 0;
-      const salePrice = parseFloat(product["sale-price"]) || 0;
+      const originalPrice = parseFloat(product.price?.amount ?? "0") || 0;
+      const salePrice = parseFloat(product.salePrice?.amount ?? "0") || 0;
+      const currency = product.price?.currency ?? "USD";
 
+      // Skip if no pricing data
       if (!originalPrice || !salePrice) continue;
+
+      // Skip if not actually on sale
       if (salePrice >= originalPrice) continue;
 
       const discountPercent = calcDiscount(originalPrice, salePrice);
       if (discountPercent < minDiscount) continue;
 
+      // Skip if no affiliate link
+      if (!product.link) continue;
+
       deals.push({
-        networkId: linkId,
+        networkId: product.id,
         network: "cj",
-        title: product["link-name"] ?? "",
-        description: product["description"] ?? "",
-        brand: product["advertiser"] ?? "",
-        imageUrl: product["img-url"] ?? "",
-        rawAffiliateUrl: product["buy-url"] ?? "",
+        title: product.title ?? "",
+        description: product.description ?? "",
+        brand: product.brand || product.advertiserName || "",
+        imageUrl: product.imageLink ?? "",
+        rawAffiliateUrl: product.link,
         originalPrice,
         salePrice,
         discountPercent,
-        currency: product["currency"] || "USD",
-        expiresAt: product["promotion-end-date"] || null,
+        currency,
+        expiresAt: null,
         categories: [],
-        sku: product["sku"] || undefined,
-        slug: slugify(`${product["advertiser"]}-${product["link-name"]}-${linkId}`),
+        slug: slugify(`${product.advertiserName}-${product.title}-${product.id}`),
       });
     }
   }
