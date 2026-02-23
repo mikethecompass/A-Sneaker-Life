@@ -57,6 +57,15 @@ interface CjGraphQLResponse {
   errors?: Array<{ message: string }>;
 }
 
+// Advertiser IDs for key joined partners — queried directly to ensure
+// their products are always fetched regardless of keyword matching.
+const JOINED_ADVERTISER_IDS = [
+  "4942550", // Nike
+  "5881002",
+  "7345657",
+  "5632470",
+];
+
 async function queryProducts(
   companyId: string,
   token: string,
@@ -66,6 +75,57 @@ async function queryProducts(
     products(
       companyId: "${companyId}"
       keywords: ${JSON.stringify(keywords)}
+      partnerStatus: JOINED
+      limit: 100
+    ) {
+      resultList {
+        id
+        title
+        description
+        price { amount currency }
+        salePrice { amount currency }
+        imageLink
+        link
+        brand
+        advertiserId
+        advertiserName
+      }
+    }
+  }`;
+
+  const res = await fetch(CJ_GRAPHQL_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ query }),
+    next: { revalidate: 1800 },
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`CJ GraphQL error ${res.status}: ${body.slice(0, 200)}`);
+  }
+
+  const data: CjGraphQLResponse = await res.json();
+
+  if (data.errors?.length) {
+    throw new Error(`CJ GraphQL errors: ${data.errors.map((e) => e.message).join(", ")}`);
+  }
+
+  return data.data?.products?.resultList ?? [];
+}
+
+async function queryProductsByAdvertiser(
+  companyId: string,
+  token: string,
+  advertiserIds: string[],
+): Promise<CjGraphQLProduct[]> {
+  const query = `{
+    products(
+      companyId: "${companyId}"
+      advertiserIds: ${JSON.stringify(advertiserIds)}
       partnerStatus: JOINED
       limit: 100
     ) {
@@ -118,17 +178,23 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
   const seen = new Set<string>();
   const deals: RawDeal[] = [];
 
-  // Query in batches of keywords to maximize results
+  // Query in batches of keywords + a direct advertiser ID query to ensure
+  // key partners like Nike always appear regardless of keyword matching.
   const keywordBatches = [
     SNEAKER_KEYWORDS.slice(0, 4),
     SNEAKER_KEYWORDS.slice(4),
   ];
 
-  for (const keywords of keywordBatches) {
+  const allBatches: Array<() => Promise<CjGraphQLProduct[]>> = [
+    ...keywordBatches.map((kw) => () => queryProducts(companyId, token, kw)),
+    () => queryProductsByAdvertiser(companyId, token, JOINED_ADVERTISER_IDS),
+  ];
+
+  for (const fetchBatch of allBatches) {
     let products: CjGraphQLProduct[];
 
     try {
-      products = await queryProducts(companyId, token, keywords);
+      products = await fetchBatch();
     } catch (err) {
       console.error("CJ GraphQL fetch failed:", err);
       continue;
