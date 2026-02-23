@@ -101,34 +101,29 @@ export async function POST(req: NextRequest) {
 
       const docId = existing?._id ?? `deal-${deal.network}-${deal.networkId}`;
 
-      await sanityWriteClient
-        .patch(docId)
-        .set({
-          _type: "deal",
-          title: deal.title,
-          "slug.current": deal.slug,
-          description: deal.description,
-          imageUrl: deal.imageUrl,
-          affiliateUrl: deal.affiliateUrl,
-          originalPrice: deal.originalPrice,
-          salePrice: deal.salePrice,
-          discountPercent: deal.discountPercent,
-          discountTier: deal.discountTier,
-          currency: deal.currency,
-          expiresAt: deal.expiresAt,
-          categories: deal.categories,
-          network: deal.network,
-          networkId: deal.networkId,
-          sku: deal.sku,
-          colorway: deal.colorway,
-          gender: deal.gender,
-          sizes: deal.sizes,
-        })
-        .setIfMissing({
-          publishedAt: new Date().toISOString(),
-          brand: null,
-        })
-        .commit({ autoGenerateArrayKeys: true });
+      await sanityWriteClient.createOrReplace({
+        _id: docId,
+        _type: "deal",
+        title: deal.title,
+        slug: { _type: "slug", current: deal.slug },
+        description: deal.description,
+        imageUrl: deal.imageUrl,
+        affiliateUrl: deal.affiliateUrl,
+        originalPrice: deal.originalPrice,
+        salePrice: deal.salePrice,
+        discountPercent: deal.discountPercent,
+        discountTier: deal.discountTier,
+        currency: deal.currency,
+        expiresAt: deal.expiresAt,
+        categories: deal.categories,
+        network: deal.network,
+        networkId: deal.networkId,
+        sku: deal.sku ?? null,
+        colorway: deal.colorway ?? null,
+        gender: deal.gender ?? null,
+        sizes: deal.sizes ?? [],
+        publishedAt: new Date().toISOString(),
+      });
 
       results.upserted++;
     } catch (err) {
