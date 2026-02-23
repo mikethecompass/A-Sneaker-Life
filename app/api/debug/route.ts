@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // CJ new GraphQL API
     const query = `{
-      productSearch(
+      products(
         companyId: "${websiteId}"
         keywords: "sneakers"
         advertiserIds: ["4942550", "5881002", "7345657"]
