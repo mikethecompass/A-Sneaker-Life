@@ -64,10 +64,9 @@ function getAccountSid(): string {
 
 // ── Fetch from /Ads endpoint ───────────────────────────────────────────────────
 async function fetchAds(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
+  // Note: PromotionType is NOT a valid param for /Ads — only AdStatus and AdType are.
   const params = new URLSearchParams({
     PageSize: "100",
-    PromotionType: "SALE",
-    Text: "sneaker OR shoes OR footwear OR Jordan OR Nike OR Adidas OR Foot Locker",
     AdStatus: "ACTIVE",
   });
 
@@ -79,9 +78,14 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
     }
   );
 
-  if (!res.ok) return [];
+  console.log(`[Impact /Ads] status=${res.status}`);
+  if (!res.ok) {
+    console.error(`[Impact /Ads] error body:`, await res.text());
+    return [];
+  }
 
   const data = await res.json();
+  const rawCount = (data.Items ?? []).length;
   const deals: RawDeal[] = [];
 
   for (const item of data.Items ?? []) {
@@ -89,13 +93,14 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
 
     const originalPrice = Number(item.OriginalPrice) || 0;
     const salePrice = Number(item.SalePrice) || 0;
-    if (!originalPrice || !salePrice) continue;
 
     const discountPercent = item.Discount != null
       ? Number(item.Discount)
       : calcDiscount(originalPrice, salePrice);
 
-    if (discountPercent < minDiscount) continue;
+    // Only require discount if we have prices; text-link ads without prices are still useful
+    if (originalPrice && salePrice && discountPercent < minDiscount) continue;
+    if (!item.DirectUrl && !item.LandingPageUrl) continue;
 
     deals.push({
       networkId: `ad-${item.Id}`,
@@ -104,7 +109,7 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
       description: item.Description ?? "",
       brand: item.BrandName ?? "",
       imageUrl: item.ImageUrl ?? "",
-      rawAffiliateUrl: item.DirectUrl,
+      rawAffiliateUrl: item.DirectUrl ?? item.LandingPageUrl,
       originalPrice,
       salePrice,
       discountPercent,
@@ -116,6 +121,7 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
     });
   }
 
+  console.log(`[Impact /Ads] raw=${rawCount} sneaker-filtered=${deals.length}`);
   return deals;
 }
 
@@ -176,27 +182,40 @@ async function fetchDeals(auth: string, sid: string, minDiscount: number): Promi
 }
 
 // ── Fetch from /Promotions endpoint ───────────────────────────────────────────
+// Fetches both DISCOUNT and SALE promotion types for maximum coverage
 async function fetchPromotions(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
-  const params = new URLSearchParams({
-    PageSize: "100",
-    PromotionType: "DISCOUNT",
-    Status: "ACTIVE",
-  });
+  const promoTypes = ["DISCOUNT", "SALE"];
+  const allItems: unknown[] = [];
 
-  const res = await fetch(
-    `${IMPACT_BASE_URL}/Mediapartners/${sid}/Promotions?${params}`,
-    {
-      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
-      next: { revalidate: 1800 },
+  for (const promoType of promoTypes) {
+    const params = new URLSearchParams({
+      PageSize: "100",
+      PromotionType: promoType,
+      Status: "ACTIVE",
+    });
+
+    const res = await fetch(
+      `${IMPACT_BASE_URL}/Mediapartners/${sid}/Promotions?${params}`,
+      {
+        headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+        next: { revalidate: 1800 },
+      }
+    );
+
+    console.log(`[Impact /Promotions type=${promoType}] status=${res.status}`);
+    if (!res.ok) {
+      console.error(`[Impact /Promotions type=${promoType}] error:`, await res.text());
+      continue;
     }
-  );
 
-  if (!res.ok) return [];
+    const data = await res.json();
+    allItems.push(...(data.Items ?? []));
+  }
 
-  const data = await res.json();
+  console.log(`[Impact /Promotions] total raw items=${allItems.length}`);
   const deals: RawDeal[] = [];
 
-  for (const item of data.Items ?? []) {
+  for (const item of allItems as Record<string, unknown>[]) {
     const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.AdvertiserName ?? ""}`;
     if (!isSneakerRelated(combined)) continue;
 
@@ -211,21 +230,22 @@ async function fetchPromotions(auth: string, sid: string, minDiscount: number): 
     deals.push({
       networkId: `promo-${item.Id}`,
       network: "impact",
-      title: item.Name ?? `${item.AdvertiserName} — ${discountPercent}% Off`,
-      description: item.Description ?? "",
-      brand: item.AdvertiserName ?? "",
-      imageUrl: item.ImageUrl ?? "",
-      rawAffiliateUrl: item.TrackingUrl ?? item.LandingPageUrl ?? "",
+      title: (item.Name as string) ?? `${item.AdvertiserName} — ${discountPercent}% Off`,
+      description: (item.Description as string) ?? "",
+      brand: (item.AdvertiserName as string) ?? "",
+      imageUrl: (item.ImageUrl as string) ?? "",
+      rawAffiliateUrl: (item.TrackingUrl as string) ?? (item.LandingPageUrl as string) ?? "",
       originalPrice,
       salePrice,
       discountPercent,
-      currency: item.Currency ?? "USD",
-      expiresAt: item.EndDate ?? null,
+      currency: (item.Currency as string) ?? "USD",
+      expiresAt: (item.EndDate as string) ?? null,
       categories: [],
       slug: slugify(`${item.AdvertiserName}-${item.Name}-${item.Id}`),
     });
   }
 
+  console.log(`[Impact /Promotions] sneaker-filtered=${deals.length}`);
   return deals;
 }
 

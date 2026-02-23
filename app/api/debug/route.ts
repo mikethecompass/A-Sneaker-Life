@@ -17,12 +17,11 @@ export async function GET(req: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
-  // ── Test CJ with XML ──────────────────────────────────────────────────────
+  // ── Test CJ ───────────────────────────────────────────────────────────────
   try {
     const cjToken = process.env.CJ_API_KEY;
     const websiteId = process.env.CJ_WEBSITE_ID;
 
-    // CJ GraphQL products query with correct partnerIds param
     const query = `{
       products(
         companyId: "${websiteId}"
@@ -66,37 +65,113 @@ export async function GET(req: NextRequest) {
     results.cj = { error: String(err) };
   }
 
-  // ── Test Impact /Ads ───────────────────────────────────────────────────────
+  const sid = process.env.IMPACT_ACCOUNT_SID;
+  const key = process.env.IMPACT_API_KEY;
+  const auth = Buffer.from(`${sid}:${key}`).toString("base64");
+  const impactBase = `https://api.impact.com/Mediapartners/${sid}`;
+
+  // ── Test Impact /Campaigns — lists all approved partner brands ─────────────
+  // If this returns 0 items you have no approved advertisers yet.
   try {
-    const sid = process.env.IMPACT_ACCOUNT_SID;
-    const key = process.env.IMPACT_API_KEY;
-    const auth = Buffer.from(`${sid}:${key}`).toString("base64");
-
-    const params = new URLSearchParams({
-      PageSize: "5",
-      AdStatus: "ACTIVE",
-      DealType: "PERCENT_OFF",
+    const res = await fetch(`${impactBase}/Campaigns?PageSize=50`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
     });
+    const text = await res.text();
+    let parsed: Record<string, unknown> = {};
+    try { parsed = JSON.parse(text); } catch { /* leave empty */ }
 
-    const impactRes = await fetch(
-      `https://api.impact.com/Mediapartners/${sid}/Ads?${params}`,
-      {
-        headers: {
-          Authorization: `Basic ${auth}`,
-          Accept: "application/json",
-        },
-      }
-    );
-
-    const impactText = await impactRes.text();
-    results.impact = {
-      status: impactRes.status,
-      ok: impactRes.ok,
-      rawResponse: impactText.slice(0, 3000),
+    const items = (parsed.Items as unknown[]) ?? [];
+    results.impact_campaigns = {
+      status: res.status,
+      ok: res.ok,
+      totalCount: parsed.TotalCount ?? items.length,
+      // Show just the advertiser names so you can see who approved you
+      advertisers: items.map((c: unknown) => {
+        const camp = c as Record<string, unknown>;
+        return { id: camp.CampaignId, name: camp.CampaignName, advertiser: camp.AdvertiserName };
+      }),
+      rawResponse: text.slice(0, 2000),
     };
   } catch (err) {
-    results.impact = { error: String(err) };
+    results.impact_campaigns = { error: String(err) };
   }
 
-  return NextResponse.json(results);
+  // ── Test Impact /Ads — no filters, raw count ───────────────────────────────
+  try {
+    const res = await fetch(`${impactBase}/Ads?PageSize=10&AdStatus=ACTIVE`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    const text = await res.text();
+    let parsed: Record<string, unknown> = {};
+    try { parsed = JSON.parse(text); } catch { /* leave empty */ }
+
+    results.impact_ads = {
+      status: res.status,
+      ok: res.ok,
+      totalCount: parsed.TotalCount ?? 0,
+      itemCount: ((parsed.Items as unknown[]) ?? []).length,
+      rawResponse: text.slice(0, 2000),
+    };
+  } catch (err) {
+    results.impact_ads = { error: String(err) };
+  }
+
+  // ── Test Impact /Promotions DISCOUNT ──────────────────────────────────────
+  try {
+    const res = await fetch(
+      `${impactBase}/Promotions?PageSize=10&PromotionType=DISCOUNT&Status=ACTIVE`,
+      { headers: { Authorization: `Basic ${auth}`, Accept: "application/json" } }
+    );
+    const text = await res.text();
+    let parsed: Record<string, unknown> = {};
+    try { parsed = JSON.parse(text); } catch { /* leave empty */ }
+
+    results.impact_promotions_discount = {
+      status: res.status,
+      ok: res.ok,
+      totalCount: parsed.TotalCount ?? 0,
+      itemCount: ((parsed.Items as unknown[]) ?? []).length,
+      rawResponse: text.slice(0, 2000),
+    };
+  } catch (err) {
+    results.impact_promotions_discount = { error: String(err) };
+  }
+
+  // ── Test Impact /Promotions SALE ──────────────────────────────────────────
+  try {
+    const res = await fetch(
+      `${impactBase}/Promotions?PageSize=10&PromotionType=SALE&Status=ACTIVE`,
+      { headers: { Authorization: `Basic ${auth}`, Accept: "application/json" } }
+    );
+    const text = await res.text();
+    let parsed: Record<string, unknown> = {};
+    try { parsed = JSON.parse(text); } catch { /* leave empty */ }
+
+    results.impact_promotions_sale = {
+      status: res.status,
+      ok: res.ok,
+      totalCount: parsed.TotalCount ?? 0,
+      itemCount: ((parsed.Items as unknown[]) ?? []).length,
+      rawResponse: text.slice(0, 2000),
+    };
+  } catch (err) {
+    results.impact_promotions_sale = { error: String(err) };
+  }
+
+  // ── Test Impact /Deals (403 expected unless account has Deals access) ──────
+  try {
+    const res = await fetch(`${impactBase}/Deals?PageSize=5&Status=ACTIVE`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    });
+    const text = await res.text();
+    results.impact_deals = {
+      status: res.status,
+      ok: res.ok,
+      rawResponse: text.slice(0, 1000),
+    };
+  } catch (err) {
+    results.impact_deals = { error: String(err) };
+  }
+
+  return NextResponse.json(results, { status: 200 });
 }
