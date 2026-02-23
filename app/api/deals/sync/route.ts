@@ -90,42 +90,51 @@ export async function POST(req: NextRequest) {
   const deduped = deduplicateDeals(sortDeals(wrappedDeals));
   results.afterDedup = deduped.length;
 
-  // ── 4. Upsert into Sanity (all in parallel) ──────────────────────────────
-  const upsertResults = await Promise.allSettled(
-    deduped.map((deal) =>
-      sanityWriteClient.createOrReplace({
-        _id: `deal-${deal.network}-${deal.networkId}`,
-        _type: "deal",
-        title: deal.title,
-        slug: { _type: "slug", current: deal.slug },
-        description: deal.description,
-        imageUrl: deal.imageUrl,
-        affiliateUrl: deal.affiliateUrl,
-        originalPrice: deal.originalPrice,
-        salePrice: deal.salePrice,
-        discountPercent: deal.discountPercent,
-        discountTier: deal.discountTier,
-        currency: deal.currency,
-        expiresAt: deal.expiresAt,
-        categories: deal.categories,
-        network: deal.network,
-        networkId: deal.networkId,
-        sku: deal.sku ?? null,
-        colorway: deal.colorway ?? null,
-        gender: deal.gender ?? null,
-        sizes: deal.sizes ?? [],
-        publishedAt: new Date().toISOString(),
-      })
-    )
-  );
+  // ── 4. Upsert into Sanity in batches to avoid rate limits ────────────────
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < deduped.length; i += BATCH_SIZE) {
+    const batch = deduped.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map((deal) =>
+        sanityWriteClient.createOrReplace({
+          _id: `deal-${deal.network}-${deal.networkId}`,
+          _type: "deal",
+          title: deal.title,
+          slug: { _type: "slug", current: deal.slug },
+          description: deal.description,
+          imageUrl: deal.imageUrl,
+          affiliateUrl: deal.affiliateUrl,
+          originalPrice: deal.originalPrice,
+          salePrice: deal.salePrice,
+          discountPercent: deal.discountPercent,
+          discountTier: deal.discountTier,
+          currency: deal.currency,
+          expiresAt: deal.expiresAt,
+          categories: deal.categories,
+          network: deal.network,
+          networkId: deal.networkId,
+          sku: deal.sku ?? null,
+          colorway: deal.colorway ?? null,
+          gender: deal.gender ?? null,
+          sizes: deal.sizes ?? [],
+          publishedAt: new Date().toISOString(),
+        })
+      )
+    );
 
-  for (const r of upsertResults) {
-    if (r.status === "fulfilled") {
-      results.upserted++;
-    } else {
-      const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
-      results.errors.push(`Sanity upsert failed: ${msg}`);
-      results.skipped++;
+    for (const r of batchResults) {
+      if (r.status === "fulfilled") {
+        results.upserted++;
+      } else {
+        const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+        results.errors.push(`Sanity upsert failed: ${msg}`);
+        results.skipped++;
+      }
+    }
+
+    // Small pause between batches to stay under Sanity's rate limit
+    if (i + BATCH_SIZE < deduped.length) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
   }
 
