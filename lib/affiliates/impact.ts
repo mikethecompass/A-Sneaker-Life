@@ -1,46 +1,16 @@
 /**
  * Impact Radius (Impact.com) API client
- *
- * Queries three endpoints in parallel:
- *   1. /Ads        — display/promotional ads
- *   2. /Deals      — curated deals from advertisers
- *   3. /Promotions — active promotions (% off, coupon codes, etc.)
- *
- * Authentication: HTTP Basic Auth
- *   Username = Account SID  (IMPACT_ACCOUNT_SID)
- *   Password = Auth Token   (IMPACT_API_KEY)
  */
 
 import type { RawDeal } from "./types";
 
 const IMPACT_BASE_URL = "https://api.impact.com";
 
-const SNEAKER_KEYWORDS = [
-  "sneaker", "shoe", "footwear", "running", "basketball",
-  "jordan", "nike", "adidas", "new balance", "puma",
-  "reebok", "converse", "vans", "asics", "under armour",
-  "foot locker", "champs", "kicks",
-];
-
-const SNEAKER_BRANDS = [
-  "foot locker", "champs sports", "footaction", "new balance",
-  "adidas", "kicks crew", "stockx", "grailed", "brooks", "salomon",
-  "nike", "jordan",
-];
-
 function buildBasicAuth(): string {
   const sid = process.env.IMPACT_ACCOUNT_SID;
   const key = process.env.IMPACT_API_KEY;
   if (!sid || !key) throw new Error("Missing IMPACT_ACCOUNT_SID or IMPACT_API_KEY");
   return Buffer.from(`${sid}:${key}`).toString("base64");
-}
-
-function isSneakerRelated(text: string): boolean {
-  const lower = text.toLowerCase();
-  return (
-    SNEAKER_KEYWORDS.some((kw) => lower.includes(kw)) ||
-    SNEAKER_BRANDS.some((b) => lower.includes(b))
-  );
 }
 
 function calcDiscount(original: number, sale: number): number {
@@ -62,9 +32,7 @@ function getAccountSid(): string {
   return sid;
 }
 
-// ── Fetch from /Ads endpoint ───────────────────────────────────────────────────
-async function fetchAds(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
-  // Note: PromotionType is NOT a valid param for /Ads — only AdStatus and AdType are.
+async function fetchAds(auth: string, sid: string): Promise<RawDeal[]> {
   const params = new URLSearchParams({
     PageSize: "100",
     AdStatus: "ACTIVE",
@@ -89,8 +57,6 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
   const deals: RawDeal[] = [];
 
   for (const item of data.Items ?? []) {
-    if (!isSneakerRelated(`${item.Name} ${item.Description} ${item.BrandName}`)) continue;
-
     const originalPrice = Number(item.OriginalPrice) || 0;
     const salePrice = Number(item.SalePrice) || 0;
 
@@ -98,8 +64,6 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
       ? Number(item.Discount)
       : calcDiscount(originalPrice, salePrice);
 
-    // Only require discount if we have prices; text-link ads without prices are still useful
-    if (originalPrice && salePrice && discountPercent < minDiscount) continue;
     if (!item.DirectUrl && !item.LandingPageUrl) continue;
 
     deals.push({
@@ -121,12 +85,11 @@ async function fetchAds(auth: string, sid: string, minDiscount: number): Promise
     });
   }
 
-  console.log(`[Impact /Ads] raw=${rawCount} sneaker-filtered=${deals.length}`);
+  console.log(`[Impact /Ads] raw=${rawCount} returned=${deals.length}`);
   return deals;
 }
 
-// ── Fetch from /Deals endpoint ─────────────────────────────────────────────────
-async function fetchDeals(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
+async function fetchDeals(auth: string, sid: string): Promise<RawDeal[]> {
   const params = new URLSearchParams({
     PageSize: "100",
     Status: "ACTIVE",
@@ -146,19 +109,12 @@ async function fetchDeals(auth: string, sid: string, minDiscount: number): Promi
   const deals: RawDeal[] = [];
 
   for (const item of data.Items ?? []) {
-    const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.AdvertiserName ?? ""}`;
-    if (!isSneakerRelated(combined)) continue;
-
     const originalPrice = Number(item.OriginalPrice) || Number(item.Price) || 0;
     const salePrice = Number(item.SalePrice) || Number(item.DiscountedPrice) || 0;
 
-    // Some deals are % off without explicit prices — still include them
     const discountPercent = item.DiscountPercent != null
       ? Number(item.DiscountPercent)
       : calcDiscount(originalPrice, salePrice);
-
-    if (discountPercent < minDiscount) continue;
-    if (originalPrice && salePrice && salePrice >= originalPrice) continue;
 
     deals.push({
       networkId: `deal-${item.Id}`,
@@ -181,9 +137,7 @@ async function fetchDeals(auth: string, sid: string, minDiscount: number): Promi
   return deals;
 }
 
-// ── Fetch from /Promotions endpoint ───────────────────────────────────────────
-// Fetches both DISCOUNT and SALE promotion types for maximum coverage
-async function fetchPromotions(auth: string, sid: string, minDiscount: number): Promise<RawDeal[]> {
+async function fetchPromotions(auth: string, sid: string): Promise<RawDeal[]> {
   const promoTypes = ["DISCOUNT", "SALE"];
   const allItems: unknown[] = [];
 
@@ -216,12 +170,7 @@ async function fetchPromotions(auth: string, sid: string, minDiscount: number): 
   const deals: RawDeal[] = [];
 
   for (const item of allItems as Record<string, unknown>[]) {
-    const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.AdvertiserName ?? ""}`;
-    if (!isSneakerRelated(combined)) continue;
-
     const discountPercent = Number(item.DiscountPercent) || 0;
-    if (discountPercent < minDiscount) continue;
-
     const originalPrice = Number(item.OriginalPrice) || Number(item.Price) || 0;
     const salePrice = originalPrice
       ? Math.round(originalPrice * (1 - discountPercent / 100))
@@ -245,19 +194,17 @@ async function fetchPromotions(auth: string, sid: string, minDiscount: number): 
     });
   }
 
-  console.log(`[Impact /Promotions] sneaker-filtered=${deals.length}`);
+  console.log(`[Impact /Promotions] returned=${deals.length}`);
   return deals;
 }
 
-// ── Main export ────────────────────────────────────────────────────────────────
-export async function fetchImpactDeals(minDiscount = 10): Promise<RawDeal[]> {
+export async function fetchImpactDeals(minDiscount = 0): Promise<RawDeal[]> {
   const auth = buildBasicAuth();
   const sid = getAccountSid();
 
-  // Query Ads and Promotions in parallel (/Deals returns 403 on this account)
   const [adsResult, promosResult] = await Promise.allSettled([
-    fetchAds(auth, sid, minDiscount),
-    fetchPromotions(auth, sid, minDiscount),
+    fetchAds(auth, sid),
+    fetchPromotions(auth, sid),
   ]);
 
   const all: RawDeal[] = [];
@@ -265,7 +212,6 @@ export async function fetchImpactDeals(minDiscount = 10): Promise<RawDeal[]> {
   if (adsResult.status === "fulfilled") all.push(...adsResult.value);
   if (promosResult.status === "fulfilled") all.push(...promosResult.value);
 
-  // Deduplicate by networkId
   const seen = new Set<string>();
   return all.filter((d) => {
     if (seen.has(d.networkId)) return false;
