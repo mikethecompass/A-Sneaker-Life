@@ -22,22 +22,36 @@ export async function GET(req: NextRequest) {
     const cjToken = process.env.CJ_API_KEY;
     const websiteId = process.env.CJ_WEBSITE_ID;
 
-    const params = new URLSearchParams({
-      "website-id": websiteId ?? "",
-      keywords: "sneakers",
-      "page-number": "1",
-      "records-per-page": "5",
-      "advertiser-ids": "4942550,5881002,7345657",
-    });
-
-    const cjRes = await fetch(
-      `https://product-search.api.cj.com/v2/product-search?${params}`,
-      {
-        headers: {
-          Authorization: `Bearer ${cjToken}`,
-        },
+    // CJ new GraphQL API
+    const query = `{
+      productSearch(
+        companyId: "${websiteId}"
+        keywords: "sneakers"
+        advertiserIds: ["4942550", "5881002", "7345657"]
+        limit: 5
+      ) {
+        resultList {
+          id
+          title
+          description
+          price
+          salePrice
+          imageLink
+          link
+          brand
+          advertiser { id name }
+        }
       }
-    );
+    }`;
+
+    const cjRes = await fetch("https://ads.api.cj.com/query", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${cjToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query }),
+    });
 
     const cjText = await cjRes.text();
     results.cj = {
