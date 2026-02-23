@@ -22,24 +22,18 @@ export async function GET(req: NextRequest) {
     const cjToken = process.env.CJ_API_KEY;
     const websiteId = process.env.CJ_WEBSITE_ID;
 
-    // CJ new GraphQL API
+    // CJ GraphQL introspection — get the full schema
     const query = `{
-      products(
-        companyId: "${websiteId}"
-        keywords: "sneakers"
-        advertiserIds: ["4942550", "5881002", "7345657"]
-        limit: 5
-      ) {
-        resultList {
-          id
-          title
-          description
-          price
-          salePrice
-          imageLink
-          link
-          brand
-          advertiser { id name }
+      __schema {
+        queryType {
+          fields {
+            name
+            description
+            args {
+              name
+              type { name kind ofType { name kind } }
+            }
+          }
         }
       }
     }`;
