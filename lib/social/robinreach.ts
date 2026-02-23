@@ -76,32 +76,33 @@ export async function postDealToTwitter(
   scheduleAt?: string
 ): Promise<RobinReachPostResponse> {
   const apiKey = process.env.ROBINREACH_API_KEY;
-  const accountId = process.env.ROBINREACH_ACCOUNT_ID;
+  const brandId = process.env.ROBINREACH_BRAND_ID;
+  const profileId = process.env.ROBINREACH_ACCOUNT_ID;
 
   if (!apiKey) throw new Error("Missing ROBINREACH_API_KEY");
-  if (!accountId) throw new Error("Missing ROBINREACH_ACCOUNT_ID");
+  if (!brandId) throw new Error("Missing ROBINREACH_BRAND_ID");
+  if (!profileId) throw new Error("Missing ROBINREACH_ACCOUNT_ID");
 
   const tweetText = composeDealTweet(deal);
 
   const payload: Record<string, unknown> = {
-    account_id: accountId,
-    platform: "twitter",
+    social_profile_ids: [Number(profileId)],
     content: tweetText,
     media_urls: deal.imageUrl ? [deal.imageUrl] : [],
   };
 
   if (scheduleAt) {
-    payload.scheduled_at = scheduleAt;
+    payload.publish_time = scheduleAt;
   }
 
-  const res = await fetch("https://api.robinreach.com/v1/posts", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(payload),
-  });
+  const res = await fetch(
+    `https://robinreach.com/api/v1/posts?api_key=${apiKey}&brand_id=${brandId}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }
+  );
 
   if (!res.ok) {
     const body = await res.text();
