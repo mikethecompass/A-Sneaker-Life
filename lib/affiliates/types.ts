@@ -63,6 +63,33 @@ export interface ImpactApiResponse {
   TotalCount: number;
 }
 
+export interface ImpactCatalogItem {
+  Id: string;
+  CatalogId: string;
+  CampaignId: number;
+  CampaignName: string;
+  Name: string;
+  Description: string;
+  Url: string;
+  ImageUrl: string;
+  CurrentPrice: string;
+  OriginalPrice: string;
+  Currency: string;
+  Labels: string[];
+  Brand: string;
+  Manufacturer: string;
+  Gtin?: string;
+  Mpn?: string;
+  StockAvailability?: string;
+}
+
+export interface ImpactCatalogResponse {
+  "@type": string;
+  Items: ImpactCatalogItem[];
+  TotalCount: number;
+  "@nextpageuri"?: string;
+}
+
 // ─── CJ Affiliate raw API shapes ──────────────────────────────────────────────
 
 export interface CjProduct {

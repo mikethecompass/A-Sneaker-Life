@@ -1,17 +1,23 @@
 /**
  * Impact Radius (Impact.com) API client
  *
- * Queries three endpoints in parallel:
- *   1. /Ads        — display/promotional ads
- *   2. /Deals      — curated deals from advertisers
- *   3. /Promotions — active promotions (% off, coupon codes, etc.)
+ * Queries four endpoint groups in parallel:
+ *   1. /Catalogs/Items — product catalog feeds (primary source for brand deals)
+ *   2. /Ads            — display/promotional ads
+ *   3. /Promotions     — active promotions (% off, coupon codes, etc.)
+ *   4. /Deals          — curated deals (skipped if 403)
+ *
+ * Brand-specific targeting:
+ *   Set IMPACT_CAMPAIGN_IDS to a comma-separated list of "Label:CampaignId"
+ *   pairs to target specific advertisers (e.g. Nike, Adidas, Foot Locker).
+ *   The Catalog Items API is queried once per campaign for product-level data.
  *
  * Authentication: HTTP Basic Auth
  *   Username = Account SID  (IMPACT_ACCOUNT_SID)
  *   Password = Auth Token   (IMPACT_API_KEY)
  */
 
-import type { RawDeal } from "./types";
+import type { RawDeal, ImpactCatalogItem } from "./types";
 
 const IMPACT_BASE_URL = "https://api.impact.com";
 
@@ -26,6 +32,11 @@ const SNEAKER_BRANDS = [
   "foot locker", "champs sports", "footaction", "new balance",
   "adidas", "kicks crew", "stockx", "grailed", "brooks", "salomon",
   "nike", "jordan",
+];
+
+/** Sneaker-related search terms for the Catalog Items API keyword queries */
+const CATALOG_SEARCH_TERMS = [
+  "sneaker", "jordan", "running shoes", "basketball shoes",
 ];
 
 function buildBasicAuth(): string {
@@ -60,6 +71,138 @@ function getAccountSid(): string {
   const sid = process.env.IMPACT_ACCOUNT_SID;
   if (!sid) throw new Error("Missing IMPACT_ACCOUNT_SID");
   return sid;
+}
+
+/**
+ * Parse the IMPACT_CAMPAIGN_IDS env var into a map of label → campaignId.
+ * Format: "Nike:12345,Adidas:67890,Foot Locker:11111,Jordan:22222"
+ */
+function parseCampaignIds(): Map<string, string> {
+  const raw = process.env.IMPACT_CAMPAIGN_IDS ?? "";
+  const map = new Map<string, string>();
+  if (!raw.trim()) return map;
+
+  for (const pair of raw.split(",")) {
+    const [label, id] = pair.split(":").map((s) => s.trim());
+    if (label && id) map.set(label, id);
+  }
+  return map;
+}
+
+// ── Fetch from /Catalogs/Items endpoint ─────────────────────────────────────
+// This is the primary endpoint for product-level data from advertiser catalogs.
+// We query it two ways:
+//   1. By specific CampaignId (for targeted brands like Nike, Adidas, etc.)
+//   2. By keyword search across all catalogs (for broader sneaker deals)
+
+async function fetchCatalogItemsByCampaign(
+  auth: string,
+  sid: string,
+  campaignId: string,
+  campaignLabel: string,
+  minDiscount: number,
+): Promise<RawDeal[]> {
+  const params = new URLSearchParams({
+    PageSize: "100",
+    CampaignId: campaignId,
+  });
+
+  const url = `${IMPACT_BASE_URL}/Mediapartners/${sid}/Catalogs/Items?${params}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    next: { revalidate: 1800 },
+  });
+
+  console.log(`[Impact /Catalogs/Items campaign=${campaignLabel}(${campaignId})] status=${res.status}`);
+  if (!res.ok) {
+    console.error(`[Impact /Catalogs/Items campaign=${campaignLabel}] error:`, await res.text());
+    return [];
+  }
+
+  const data = await res.json();
+  return parseCatalogItems(data.Items ?? [], minDiscount, `campaign-${campaignId}`);
+}
+
+async function fetchCatalogItemsByKeyword(
+  auth: string,
+  sid: string,
+  keyword: string,
+  minDiscount: number,
+): Promise<RawDeal[]> {
+  const params = new URLSearchParams({
+    PageSize: "100",
+    Query: keyword,
+  });
+
+  const url = `${IMPACT_BASE_URL}/Mediapartners/${sid}/Catalogs/Items?${params}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
+    next: { revalidate: 1800 },
+  });
+
+  console.log(`[Impact /Catalogs/Items keyword="${keyword}"] status=${res.status}`);
+  if (!res.ok) {
+    console.error(`[Impact /Catalogs/Items keyword="${keyword}"] error:`, await res.text());
+    return [];
+  }
+
+  const data = await res.json();
+  return parseCatalogItems(data.Items ?? [], minDiscount, `kw-${keyword}`);
+}
+
+function parseCatalogItems(
+  items: ImpactCatalogItem[],
+  minDiscount: number,
+  source: string,
+): RawDeal[] {
+  const deals: RawDeal[] = [];
+
+  for (const item of items) {
+    // For keyword-based queries, apply sneaker filter;
+    // for campaign-based queries, we trust the campaign is sneaker-related
+    const isCampaignQuery = source.startsWith("campaign-");
+    if (!isCampaignQuery) {
+      const combined = `${item.Name ?? ""} ${item.Description ?? ""} ${item.Brand ?? ""} ${item.CampaignName ?? ""} ${(item.Labels ?? []).join(" ")}`;
+      if (!isSneakerRelated(combined)) continue;
+    }
+
+    const originalPrice = parseFloat(item.OriginalPrice) || 0;
+    const currentPrice = parseFloat(item.CurrentPrice) || 0;
+
+    // Skip items without both price points
+    if (!originalPrice || !currentPrice) continue;
+    // Skip items not actually on sale
+    if (currentPrice >= originalPrice) continue;
+
+    const discountPercent = calcDiscount(originalPrice, currentPrice);
+    if (discountPercent < minDiscount) continue;
+
+    const url = item.Url ?? "";
+    if (!url) continue;
+
+    const brandName = item.Brand || item.CampaignName || "";
+
+    deals.push({
+      networkId: `catalog-${item.Id}`,
+      network: "impact",
+      title: item.Name ?? "",
+      description: item.Description ?? "",
+      brand: brandName,
+      imageUrl: item.ImageUrl ?? "",
+      rawAffiliateUrl: url,
+      originalPrice,
+      salePrice: currentPrice,
+      discountPercent,
+      currency: item.Currency ?? "USD",
+      expiresAt: null,
+      categories: item.Labels ?? [],
+      sku: item.Mpn ?? item.Gtin,
+      slug: slugify(`${brandName}-${item.Name}-${item.Id}`),
+    });
+  }
+
+  console.log(`[Impact /Catalogs/Items ${source}] raw=${items.length} sneaker-filtered=${deals.length}`);
+  return deals;
 }
 
 // ── Fetch from /Ads endpoint ───────────────────────────────────────────────────
@@ -253,17 +396,46 @@ async function fetchPromotions(auth: string, sid: string, minDiscount: number): 
 export async function fetchImpactDeals(minDiscount = 10): Promise<RawDeal[]> {
   const auth = buildBasicAuth();
   const sid = getAccountSid();
+  const campaigns = parseCampaignIds();
 
-  // Query Ads and Promotions in parallel (/Deals returns 403 on this account)
-  const [adsResult, promosResult] = await Promise.allSettled([
-    fetchAds(auth, sid, minDiscount),
-    fetchPromotions(auth, sid, minDiscount),
-  ]);
+  // Build the list of parallel fetch tasks
+  const tasks: Array<Promise<RawDeal[]>> = [];
+
+  // 1. Catalog Items — campaign-specific queries for targeted brands
+  //    (Nike, Jordan, Adidas, Foot Locker, etc.)
+  campaigns.forEach((campaignId, label) => {
+    tasks.push(fetchCatalogItemsByCampaign(auth, sid, campaignId, label, minDiscount));
+  });
+
+  // 2. Catalog Items — keyword-based queries for general sneaker deals
+  for (const keyword of CATALOG_SEARCH_TERMS) {
+    tasks.push(fetchCatalogItemsByKeyword(auth, sid, keyword, minDiscount));
+  }
+
+  // 3. Ads, Promotions, and Deals (existing endpoints)
+  tasks.push(fetchAds(auth, sid, minDiscount));
+  tasks.push(fetchPromotions(auth, sid, minDiscount));
+  tasks.push(fetchDeals(auth, sid, minDiscount));
+
+  console.log(`[Impact] launching ${tasks.length} parallel fetch tasks (${campaigns.size} campaigns, ${CATALOG_SEARCH_TERMS.length} keyword searches, 3 legacy endpoints)`);
+
+  const results = await Promise.allSettled(tasks);
 
   const all: RawDeal[] = [];
+  let fulfilled = 0;
+  let failed = 0;
 
-  if (adsResult.status === "fulfilled") all.push(...adsResult.value);
-  if (promosResult.status === "fulfilled") all.push(...promosResult.value);
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      all.push(...result.value);
+      fulfilled++;
+    } else {
+      console.error("[Impact] task failed:", result.reason);
+      failed++;
+    }
+  }
+
+  console.log(`[Impact] tasks: ${fulfilled} succeeded, ${failed} failed, ${all.length} total raw deals`);
 
   // Deduplicate by networkId
   const seen = new Set<string>();
