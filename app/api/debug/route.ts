@@ -35,7 +35,6 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           Authorization: `Bearer ${cjToken}`,
-          Accept: "text/xml",
         },
       }
     );
@@ -60,6 +59,7 @@ export async function GET(req: NextRequest) {
     const params = new URLSearchParams({
       PageSize: "5",
       AdStatus: "ACTIVE",
+      DealType: "PERCENT_OFF",
     });
 
     const impactRes = await fetch(
