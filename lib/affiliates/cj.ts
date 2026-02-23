@@ -61,8 +61,8 @@ interface CjGraphQLResponse {
 // their products are always fetched regardless of keyword matching.
 const JOINED_ADVERTISER_IDS = [
   "4942550", // Nike
-  "5881002",
-  "7345657",
+  "5881002", // PUMA US
+  "7345657", // DICK'S Sporting Goods
   "5632470",
 ];
 
