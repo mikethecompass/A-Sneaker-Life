@@ -35,12 +35,13 @@ export async function GET(req: NextRequest) {
           id
           title
           description
-          price
-          salePrice
+          price { amount currency }
+          salePrice { amount currency }
           imageLink
           link
           brand
-          advertiser { id name }
+          advertiserId
+          advertiserName
         }
       }
     }`;
