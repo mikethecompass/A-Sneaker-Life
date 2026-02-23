@@ -20,9 +20,21 @@ const SNEAKER_SEARCH_TERMS = [
   "running shoes",
   "basketball shoes",
   "Nike shoes",
-  "Adidas shoes",
   "Jordan shoes",
-  "New Balance shoes",
+  "Puma shoes",
+  "training shoes",
+  "sport shoes",
+];
+
+// CJ advertiser IDs for approved sneaker/apparel partners
+const SNEAKER_ADVERTISER_IDS = [
+  "4942550", // Nike
+  "5881002", // Puma US
+  "7345657", // Dick's Sporting Goods
+  "5632470", // BSTN
+  "6008402", // Li Ning Way of Wade
+  "5253058", // Lacoste US
+  "2844548", // Columbia Sportswear
 ];
 
 function slugify(text: string): string {
@@ -73,10 +85,8 @@ async function fetchPage(
     keywords: keyword,
     "page-number": String(pageNum),
     "records-per-page": String(pageSize),
-    // Only fetch items that are on promotion/sale
-    "promotion-type": "Sale",
-    // Only active advertisers
-    "advertiser-ids": "joined",
+    // Target approved sneaker advertisers specifically
+    "advertiser-ids": SNEAKER_ADVERTISER_IDS.join(","),
   });
 
   const url = `${CJ_BASE_URL}/product-search?${params}`;
