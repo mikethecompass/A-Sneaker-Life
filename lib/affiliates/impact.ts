@@ -209,7 +209,7 @@ async function fetchPromotions(auth: string, sid: string, minDiscount: number): 
     }
 
     const data = await res.json();
-    allItems.push(...(data.Items ?? []));
+    allItems.push(...(data.Promotions ?? data.Items ?? []));
   }
 
   console.log(`[Impact /Promotions] total raw items=${allItems.length}`);
