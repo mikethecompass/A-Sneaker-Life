@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     "kicks on sale",
   ],
   authors: [{ name: "A Sneaker Life" }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://asneakerlife.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://a-sneaker-life.vercel.app"),
   openGraph: {
     type: "website",
     siteName: "A Sneaker Life",
