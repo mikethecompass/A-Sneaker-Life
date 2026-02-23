@@ -91,7 +91,6 @@ async function queryProducts(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query }),
-    // @ts-expect-error Next.js fetch extension
     next: { revalidate: 1800 },
   });
 
