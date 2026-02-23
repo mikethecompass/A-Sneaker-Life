@@ -234,17 +234,15 @@ export async function fetchImpactDeals(minDiscount = 10): Promise<RawDeal[]> {
   const auth = buildBasicAuth();
   const sid = getAccountSid();
 
-  // Query all three endpoints in parallel
-  const [adsResult, dealsResult, promosResult] = await Promise.allSettled([
+  // Query Ads and Promotions in parallel (/Deals returns 403 on this account)
+  const [adsResult, promosResult] = await Promise.allSettled([
     fetchAds(auth, sid, minDiscount),
-    fetchDeals(auth, sid, minDiscount),
     fetchPromotions(auth, sid, minDiscount),
   ]);
 
   const all: RawDeal[] = [];
 
   if (adsResult.status === "fulfilled") all.push(...adsResult.value);
-  if (dealsResult.status === "fulfilled") all.push(...dealsResult.value);
   if (promosResult.status === "fulfilled") all.push(...promosResult.value);
 
   // Deduplicate by networkId

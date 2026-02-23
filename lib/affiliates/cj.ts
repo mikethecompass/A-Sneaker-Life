@@ -1,19 +1,16 @@
 /**
  * Commission Junction (CJ Affiliate) Product Search API client
  *
- * Docs: https://developers.cj.com/docs/product-catalog-search-api
+ * CJ's Product Catalog Search API returns XML, not JSON.
+ * We fetch XML and parse it manually.
  *
  * Authentication: Bearer token via CJ_API_KEY
- *
- * The Product Catalog Search API lets us query by keyword, brand,
- * price range, and promotional type.
  */
 
-import type { CjApiResponse, CjProduct, RawDeal } from "./types";
+import type { RawDeal } from "./types";
 
 const CJ_BASE_URL = "https://product-search.api.cj.com/v2";
 
-// Sneaker brand/keyword search terms for CJ queries
 const SNEAKER_SEARCH_TERMS = [
   "sneakers",
   "athletic shoes",
@@ -50,42 +47,43 @@ function calcDiscount(original: number, sale: number): number {
   return Math.round(((original - sale) / original) * 100);
 }
 
-function toRawDeal(product: CjProduct, discountPercent: number): RawDeal {
-  const originalPrice = parseFloat(product.price) || 0;
-  const salePrice = parseFloat(product["sale-price"]) || originalPrice;
+/** Pull a single XML tag value from raw XML string */
+function xmlVal(xml: string, tag: string): string {
+  const match = xml.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return match ? match[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").trim() : "";
+}
 
-  return {
-    networkId: product["link-id"],
-    network: "cj",
-    title: product["link-name"],
-    description: product.description ?? "",
-    brand: product.advertiser ?? "",
-    imageUrl: product["img-url"] ?? "",
-    rawAffiliateUrl: product["buy-url"],
-    originalPrice,
-    salePrice,
-    discountPercent,
-    currency: product.currency ?? "USD",
-    expiresAt: product["promotion-end-date"] ?? null,
-    categories: [],
-    sku: product.sku,
-    slug: slugify(`${product.advertiser}-${product["link-name"]}-${product["link-id"]}`),
-  };
+/** Parse CJ XML product list into raw product objects */
+function parseXmlProducts(xml: string): Array<Record<string, string>> {
+  const products: Array<Record<string, string>> = [];
+  const productBlocks = xml.match(/<product>([\s\S]*?)<\/product>/gi) ?? [];
+
+  for (const block of productBlocks) {
+    const fields = [
+      "link-id", "link-name", "description", "advertiser",
+      "img-url", "buy-url", "price", "sale-price", "currency",
+      "promotion-end-date", "sku",
+    ];
+    const product: Record<string, string> = {};
+    for (const field of fields) {
+      product[field] = xmlVal(block, field);
+    }
+    products.push(product);
+  }
+
+  return products;
 }
 
 async function fetchPage(
   keyword: string,
   websiteId: string,
   token: string,
-  pageNum: number,
-  pageSize: number
-): Promise<CjProduct[]> {
+): Promise<Array<Record<string, string>>> {
   const params = new URLSearchParams({
     "website-id": websiteId,
     keywords: keyword,
-    "page-number": String(pageNum),
-    "records-per-page": String(pageSize),
-    // Target approved sneaker advertisers specifically
+    "page-number": "1",
+    "records-per-page": "50",
     "advertiser-ids": SNEAKER_ADVERTISER_IDS.join(","),
   });
 
@@ -94,29 +92,20 @@ async function fetchPage(
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/json",
+      Accept: "text/xml",
     },
     next: { revalidate: 1800 },
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`CJ API error ${res.status}: ${body}`);
+    throw new Error(`CJ API error ${res.status}: ${body.slice(0, 200)}`);
   }
 
-  const data: CjApiResponse = await res.json();
-  const raw = data?.links?.link;
-  if (!raw) return [];
-
-  // CJ returns single object instead of array when only one result
-  return Array.isArray(raw) ? raw : [raw];
+  const xml = await res.text();
+  return parseXmlProducts(xml);
 }
 
-/**
- * Fetch deals from CJ Affiliate by cycling through sneaker keywords.
- *
- * @param minDiscount Only return deals at or above this % off (default 10)
- */
 export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
   const token = process.env.CJ_API_KEY;
   const websiteId = process.env.CJ_WEBSITE_ID;
@@ -128,34 +117,46 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
   const deals: RawDeal[] = [];
 
   for (const keyword of SNEAKER_SEARCH_TERMS) {
-    let products: CjProduct[];
+    let products: Array<Record<string, string>>;
 
     try {
-      products = await fetchPage(keyword, websiteId, token, 1, 50);
+      products = await fetchPage(keyword, websiteId, token);
     } catch (err) {
       console.error(`CJ fetch failed for keyword "${keyword}":`, err);
       continue;
     }
 
     for (const product of products) {
-      // Deduplicate by link-id across keyword searches
-      if (seen.has(product["link-id"])) continue;
-      seen.add(product["link-id"]);
+      const linkId = product["link-id"];
+      if (!linkId || seen.has(linkId)) continue;
+      seen.add(linkId);
 
-      const originalPrice = parseFloat(product.price) || 0;
+      const originalPrice = parseFloat(product["price"]) || 0;
       const salePrice = parseFloat(product["sale-price"]) || 0;
 
-      // Skip if no sale price or no original price
       if (!originalPrice || !salePrice) continue;
-
-      // CJ sometimes returns items where sale == original
       if (salePrice >= originalPrice) continue;
 
       const discountPercent = calcDiscount(originalPrice, salePrice);
-
       if (discountPercent < minDiscount) continue;
 
-      deals.push(toRawDeal(product, discountPercent));
+      deals.push({
+        networkId: linkId,
+        network: "cj",
+        title: product["link-name"] ?? "",
+        description: product["description"] ?? "",
+        brand: product["advertiser"] ?? "",
+        imageUrl: product["img-url"] ?? "",
+        rawAffiliateUrl: product["buy-url"] ?? "",
+        originalPrice,
+        salePrice,
+        discountPercent,
+        currency: product["currency"] || "USD",
+        expiresAt: product["promotion-end-date"] || null,
+        categories: [],
+        sku: product["sku"] || undefined,
+        slug: slugify(`${product["advertiser"]}-${product["link-name"]}-${linkId}`),
+      });
     }
   }
 
