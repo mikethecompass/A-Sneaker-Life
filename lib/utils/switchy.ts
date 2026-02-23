@@ -49,14 +49,20 @@ export async function createSwitchyLink(
     body.custom_slug = customSlug.slice(0, 50);
   }
 
-  const res = await fetch(`${SWITCHY_API_BASE}/links`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${SWITCHY_API_BASE}/links`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    console.error("Switchy network error – returning raw URL:", err);
+    return longUrl;
+  }
 
   if (!res.ok) {
     const text = await res.text();
