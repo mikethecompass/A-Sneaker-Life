@@ -51,6 +51,8 @@ export async function createSwitchyLink(
 
   let res: Response;
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     res = await fetch(`${SWITCHY_API_BASE}/links`, {
       method: "POST",
       headers: {
@@ -58,7 +60,9 @@ export async function createSwitchyLink(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
   } catch (err) {
     console.error("Switchy network error – returning raw URL:", err);
     return longUrl;
