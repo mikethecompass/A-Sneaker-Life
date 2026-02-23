@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
-  // ── Test CJ ───────────────────────────────────────────────────────────────
+  // ── Test CJ with XML ──────────────────────────────────────────────────────
   try {
     const cjToken = process.env.CJ_API_KEY;
     const websiteId = process.env.CJ_WEBSITE_ID;
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
       {
         headers: {
           Authorization: `Bearer ${cjToken}`,
-          Accept: "application/json",
+          Accept: "text/xml",
         },
       }
     );
@@ -44,20 +44,26 @@ export async function GET(req: NextRequest) {
     results.cj = {
       status: cjRes.status,
       ok: cjRes.ok,
-      rawResponse: cjText.slice(0, 2000), // first 2000 chars
+      websiteId,
+      rawResponse: cjText.slice(0, 3000),
     };
   } catch (err) {
     results.cj = { error: String(err) };
   }
 
-  // ── Test Impact ───────────────────────────────────────────────────────────
+  // ── Test Impact /Ads ───────────────────────────────────────────────────────
   try {
     const sid = process.env.IMPACT_ACCOUNT_SID;
     const key = process.env.IMPACT_API_KEY;
     const auth = Buffer.from(`${sid}:${key}`).toString("base64");
 
+    const params = new URLSearchParams({
+      PageSize: "5",
+      AdStatus: "ACTIVE",
+    });
+
     const impactRes = await fetch(
-      `https://api.impact.com/Mediapartners/${sid}/Deals?PageSize=5`,
+      `https://api.impact.com/Mediapartners/${sid}/Ads?${params}`,
       {
         headers: {
           Authorization: `Basic ${auth}`,
@@ -70,7 +76,7 @@ export async function GET(req: NextRequest) {
     results.impact = {
       status: impactRes.status,
       ok: impactRes.ok,
-      rawResponse: impactText.slice(0, 2000),
+      rawResponse: impactText.slice(0, 3000),
     };
   } catch (err) {
     results.impact = { error: String(err) };
