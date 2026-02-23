@@ -90,19 +90,11 @@ export async function POST(req: NextRequest) {
   const deduped = deduplicateDeals(sortDeals(wrappedDeals));
   results.afterDedup = deduped.length;
 
-  // ── 4. Upsert into Sanity ─────────────────────────────────────────────────
-  for (const deal of deduped) {
-    try {
-      // Check if this deal already exists in Sanity
-      const existing = await sanityWriteClient.fetch<{ _id: string } | null>(
-        `*[_type == "deal" && network == $network && networkId == $networkId][0]{ _id }`,
-        { network: deal.network, networkId: deal.networkId }
-      );
-
-      const docId = existing?._id ?? `deal-${deal.network}-${deal.networkId}`;
-
-      await sanityWriteClient.createOrReplace({
-        _id: docId,
+  // ── 4. Upsert into Sanity (all in parallel) ──────────────────────────────
+  const upsertResults = await Promise.allSettled(
+    deduped.map((deal) =>
+      sanityWriteClient.createOrReplace({
+        _id: `deal-${deal.network}-${deal.networkId}`,
         _type: "deal",
         title: deal.title,
         slug: { _type: "slug", current: deal.slug },
@@ -123,12 +115,16 @@ export async function POST(req: NextRequest) {
         gender: deal.gender ?? null,
         sizes: deal.sizes ?? [],
         publishedAt: new Date().toISOString(),
-      });
+      })
+    )
+  );
 
+  for (const r of upsertResults) {
+    if (r.status === "fulfilled") {
       results.upserted++;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      results.errors.push(`Sanity upsert failed for ${deal.networkId}: ${msg}`);
+    } else {
+      const msg = r.reason instanceof Error ? r.reason.message : String(r.reason);
+      results.errors.push(`Sanity upsert failed: ${msg}`);
       results.skipped++;
     }
   }
