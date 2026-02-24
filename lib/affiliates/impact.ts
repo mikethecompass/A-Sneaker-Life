@@ -139,7 +139,7 @@ export async function fetchImpactDeals(
       expiresAt: item.ExpirationDate ?? null,
       categories: item.Categories ?? [],
       sku: item.SKU,
-      slug: slugify(`${item.BrandName}-${item.Name}-${item.Id}`),
+      networkId: slugify(`${item.BrandName}-${item.Name}-${item.Id}`),
     });
   }
 
