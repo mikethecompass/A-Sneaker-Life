@@ -95,7 +95,7 @@ async function fetchPage(
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
-    next: { revalidate: 1800 },
+    cache: "no-store",
   });
 
   if (!res.ok) {

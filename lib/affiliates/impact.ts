@@ -91,7 +91,7 @@ export async function fetchImpactDeals(
       Authorization: `Basic ${auth}`,
       Accept: "application/json",
     },
-    next: { revalidate: 1800 }, // cache 30 min for Next.js fetch cache
+    cache: "no-store", // cache 30 min for Next.js fetch cache
   });
 
   if (!res.ok) {
