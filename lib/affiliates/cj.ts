@@ -21,7 +21,7 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
       companyId: "${CJ_COMPANY_ID}"
       partnerStatus: JOINED
       keywords: "sneakers shoes Nike Adidas Jordan"
-      limit: 100
+      limit: 200
     ) {
       resultList {
         id
