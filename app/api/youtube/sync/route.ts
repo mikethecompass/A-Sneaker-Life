@@ -41,9 +41,8 @@ export async function POST(req: NextRequest) {
     try {
       const docId = `video-${video.youtubeId}`;
 
-      await sanityWriteClient
-        .patch(docId)
-        .set({
+      await sanityWriteClient.createOrReplace({
+          _id: docId,
           _type: "video",
           title: video.title,
           youtubeId: video.youtubeId,
@@ -53,9 +52,8 @@ export async function POST(req: NextRequest) {
           viewCount: video.viewCount,
           likeCount: video.likeCount,
           tags: video.tags.slice(0, 20),
-        })
-        .setIfMissing({ featured: false })
-        .commit();
+          featured: false,
+        });
 
       results.upserted++;
     } catch (err) {
