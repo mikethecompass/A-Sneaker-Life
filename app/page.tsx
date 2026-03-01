@@ -148,7 +148,7 @@ export default async function HomePage() {
 function DarkDealCard({ deal }: { deal: DealCardProps }) {
   const { title, slug, brand, imageUrl, affiliateUrl, originalPrice, salePrice, discountPercent, currency = "USD" } = deal;
   return (
-    <article className="group bg-gray-50 rounded-lg overflow-hidden hover:bg-gray-100 transition-colors">
+    <article className="group bg-white rounded-lg overflow-hidden border border-gray-100 hover:border-black hover:shadow-md transition-all">
       <Link href={`/deals/${slug.current}`} className="block relative aspect-square bg-white overflow-hidden">
         {imageUrl ? (
           <Image src={imageUrl} alt={title} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-3 transition-transform duration-300 group-hover:scale-105" unoptimized />
@@ -169,7 +169,7 @@ function DarkDealCard({ deal }: { deal: DealCardProps }) {
           <span className="text-[10px] text-gray-600 line-through">{formatPrice(originalPrice, currency)}</span>
         </div>
         <a href={affiliateUrl} target="_blank" rel="noopener noreferrer sponsored"
-          className="block w-full text-center bg-white text-black text-[10px] uppercase tracking-widest py-2 rounded font-bold hover:bg-gray-200 transition-colors">
+          className="block w-full text-center bg-black text-white text-[10px] uppercase tracking-widest py-2 rounded font-bold hover:bg-gray-800 transition-colors">
           Shop Deal
         </a>
       </div>
