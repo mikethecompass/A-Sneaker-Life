@@ -126,3 +126,10 @@ export const ALL_BRANDS_QUERY = groq`
     featured
   }
 `;
+
+
+export const UPCOMING_RELEASES_QUERY = `*[_type == "release" && releaseDate >= now()] | order(releaseDate asc) {
+  _id, title, slug, brand->{_id, name, slug}, colorway, sku, imageUrl,
+  retailPrice, resalePrice, releaseDate, releaseTime, releaseType,
+  gender, affiliateUrl, stockxUrl, goatUrl
+}`;
