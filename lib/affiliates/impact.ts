@@ -81,11 +81,6 @@ export async function fetchImpactDeals(
   // Impact's Ads endpoint supports keyword search and pagination
   const params = new URLSearchParams({
     PageSize: String(pageSize),
-    // Request only sale/deal type ads
-    PromotionType: "SALE",
-    // Text search for sneakers in ad name
-    Text: "sneaker OR shoes OR footwear OR Jordan OR Nike OR Adidas",
-    // Only active/non-expired ads
     AdStatus: "ACTIVE",
   });
 
