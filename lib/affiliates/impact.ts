@@ -131,7 +131,7 @@ export async function fetchImpactDeals(
       discountPercent,
       currency: item.Currency ?? "USD",
       expiresAt: item.ExpirationDate ?? null,
-      categories: item.Categories ?? [],
+      categories: Array.isArray(item.Categories) ? item.Categories : [],
       sku: item.SKU,
     });
   }
