@@ -1,17 +1,18 @@
 import { createClient } from "@sanity/client";
 
-// Read-only client for frontend queries
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || "5pfpskut";
+const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || "production";
+
 export const sanityClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production",
+  projectId,
+  dataset,
   apiVersion: "2024-07-01",
   useCdn: true,
 });
 
-// Write client for API routes (server-side only)
 export const sanityWriteClient = createClient({
-  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
-  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production",
+  projectId,
+  dataset,
   apiVersion: "2024-07-01",
   useCdn: false,
   token: process.env.SANITY_API_TOKEN,
