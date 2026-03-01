@@ -53,11 +53,11 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   const heading = q ? `Results for "${q}"` : tier ? DISCOUNT_TIER_LABELS[tier] : "All Deals";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-[#0a0a0a] min-h-screen text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-white min-h-screen text-gray-900">
       {/* Page header */}
       <div className="mb-8">
         <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Sneaker Deals</p>
-        <h1 className="text-2xl font-bold tracking-tight mb-6 text-white">{heading}</h1>
+        <h1 className="text-2xl font-bold tracking-tight mb-6 text-gray-900">{heading}</h1>
 
         {/* Filters */}
         <Suspense>

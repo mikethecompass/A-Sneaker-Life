@@ -58,15 +58,15 @@ export default async function ReleasePage({ params }: { params: { slug: string }
   ].filter(Boolean) as { label: string; url: string }[];
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
+    <div className="bg-white min-h-screen text-gray-900">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         {/* Breadcrumb */}
         <nav className="text-xs text-gray-500 uppercase tracking-widest mb-8 flex gap-2">
-          <Link href="/" className="hover:text-white transition-colors">Home</Link>
+          <Link href="/" className="hover:text-gray-900 transition-colors">Home</Link>
           <span>/</span>
-          <Link href="/releases" className="hover:text-white transition-colors">Releases</Link>
+          <Link href="/releases" className="hover:text-gray-900 transition-colors">Releases</Link>
           <span>/</span>
-          <span className="text-gray-300 truncate max-w-[200px]">{r.title}</span>
+          <span className="text-gray-600 truncate max-w-[200px]">{r.title}</span>
         </nav>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
@@ -76,7 +76,7 @@ export default async function ReleasePage({ params }: { params: { slug: string }
               <Image src={r.imageUrl} alt={r.title} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-contain p-6" unoptimized />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <span className="text-xs text-gray-400 uppercase">No Image</span>
+                <span className="text-xs text-gray-500 uppercase">No Image</span>
               </div>
             )}
           </div>
@@ -87,42 +87,42 @@ export default async function ReleasePage({ params }: { params: { slug: string }
             <h1 className="text-xl sm:text-2xl font-bold leading-snug mb-6">{r.title}</h1>
 
             <div className="space-y-3 mb-8">
-              <div className="flex justify-between border-b border-white/10 pb-3">
+              <div className="flex justify-between border-b border-gray-200 pb-3">
                 <span className="text-xs uppercase tracking-widest text-gray-500">Release Date</span>
                 <span className="text-xs font-semibold">{formatDate(r.releaseDate)}</span>
               </div>
               {r.retailPrice > 0 && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Retail Price</span>
                   <span className="text-xs font-semibold text-green-400">${r.retailPrice}</span>
                 </div>
               )}
               {r.resalePrice > 0 && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Resale Price</span>
                   <span className="text-xs font-semibold text-yellow-400">${r.resalePrice}</span>
                 </div>
               )}
               {r.colorway && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Colorway</span>
                   <span className="text-xs font-semibold">{r.colorway}</span>
                 </div>
               )}
               {r.sku && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Style Code</span>
                   <span className="text-xs font-semibold">{r.sku}</span>
                 </div>
               )}
               {r.gender && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Gender</span>
                   <span className="text-xs font-semibold capitalize">{r.gender}</span>
                 </div>
               )}
               {r.releaseType && (
-                <div className="flex justify-between border-b border-white/10 pb-3">
+                <div className="flex justify-between border-b border-gray-200 pb-3">
                   <span className="text-xs uppercase tracking-widest text-gray-500">Release Type</span>
                   <span className="text-xs font-semibold capitalize">{r.releaseType}</span>
                 </div>
@@ -134,7 +134,7 @@ export default async function ReleasePage({ params }: { params: { slug: string }
               <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Where to Buy</p>
               {RETAILERS.map((retailer) => (
                 <a key={retailer.label} href={getRetailerLink(retailer, r.title)} target="_blank" rel="noopener noreferrer sponsored"
-                  className="flex items-center justify-between w-full bg-white/5 border border-white/10 text-white text-xs uppercase tracking-widest px-4 py-3 rounded font-bold hover:bg-white hover:text-black transition-colors group">
+                  className="flex items-center justify-between w-full bg-gray-100 border border-gray-200 text-gray-900 text-xs uppercase tracking-widest px-4 py-3 rounded font-bold hover:bg-black hover:text-black transition-colors group">
                   <span>Shop {retailer.label}</span>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-50 group-hover:opacity-100"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
@@ -144,19 +144,19 @@ export default async function ReleasePage({ params }: { params: { slug: string }
         </div>
 
         {/* SEO Article Content */}
-        <div className="border-t border-white/10 pt-10 prose prose-invert prose-sm max-w-none">
+        <div className="border-t border-gray-200 pt-10 prose prose-invert prose-sm max-w-none">
           <h2 className="text-lg font-bold mb-4">About the {r.title}</h2>
-          <p className="text-gray-400 leading-relaxed mb-4">
-            The <strong className="text-white">{r.title}</strong> is set to release on <strong className="text-white">{formatDate(r.releaseDate)}</strong>
+          <p className="text-gray-500 leading-relaxed mb-4">
+            The <strong className="text-gray-900">{r.title}</strong> is set to release on <strong className="text-gray-900">{formatDate(r.releaseDate)}</strong>
             {r.retailPrice > 0 ? ` with a retail price of $${r.retailPrice}` : ""}. 
             {r.colorway ? ` This colorway features ${r.colorway}.` : ""}
           </p>
-          <p className="text-gray-400 leading-relaxed mb-4">
+          <p className="text-gray-500 leading-relaxed mb-4">
             Whether you&apos;re looking to cop at retail or find the best resale price, A Sneaker Life keeps you updated on the latest sneaker releases. 
             Check back closer to the release date for live links and updated stock availability.
           </p>
           {r.resalePrice > 0 && (
-            <p className="text-gray-400 leading-relaxed mb-4">
+            <p className="text-gray-500 leading-relaxed mb-4">
               Current resale prices for the {r.title} are sitting around <strong className="text-yellow-400">${r.resalePrice}</strong> on the secondary market.
             </p>
           )}

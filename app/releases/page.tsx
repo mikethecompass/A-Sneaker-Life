@@ -28,7 +28,7 @@ export default async function ReleasesPage() {
   const releases = await getReleases();
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
+    <div className="bg-white min-h-screen text-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
           <p className="text-xs uppercase tracking-widest text-gray-500 mb-1">Drop Calendar</p>
@@ -42,7 +42,7 @@ export default async function ReleasesPage() {
                   <Image src={r.imageUrl} alt={r.title} fill sizes="200px" className="object-contain p-2" unoptimized />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                    <span className="text-[9px] text-gray-400 uppercase">No Image</span>
+                    <span className="text-[9px] text-gray-500 uppercase">No Image</span>
                   </div>
                 )}
               </div>

@@ -73,20 +73,20 @@ export default async function DealPage({ params }: DealPageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-[#0a0a0a] min-h-screen text-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-white min-h-screen text-gray-900">
       {/* Breadcrumb */}
       <nav className="text-xs text-gray-500 uppercase tracking-widest mb-8 flex gap-2">
-        <Link href="/" className="hover:text-white transition-colors">Home</Link>
+        <Link href="/" className="hover:text-gray-900 transition-colors">Home</Link>
         <span>/</span>
-        <Link href="/deals" className="hover:text-white transition-colors">Deals</Link>
+        <Link href="/deals" className="hover:text-gray-900 transition-colors">Deals</Link>
         <span>/</span>
-        <span className="text-white truncate max-w-[200px]">{deal.title}</span>
+        <span className="text-gray-900 truncate max-w-[200px]">{deal.title}</span>
       </nav>
 
       {/* Main deal layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
         {/* Image */}
-        <div className="relative aspect-square bg-[#141414] border border-white/10">
+        <div className="relative aspect-square bg-gray-50 border border-gray-200">
           {deal.imageUrl ? (
             <Image
               src={deal.imageUrl}
@@ -127,24 +127,24 @@ export default async function DealPage({ params }: DealPageProps) {
               {formatPrice(deal.originalPrice)}
             </span>
           </div>
-          <p className="text-sm text-gray-400 mb-6">
+          <p className="text-sm text-gray-500 mb-6">
             You save {formatPrice(savings)} ({deal.discountPercent}% off)
           </p>
 
           {/* Metadata pills */}
           <div className="flex flex-wrap gap-2 mb-6">
             {deal.sku && (
-              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400">
+              <span className="text-xs border border-gray-200 px-3 py-1 text-gray-500">
                 SKU: {deal.sku}
               </span>
             )}
             {deal.colorway && (
-              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400">
+              <span className="text-xs border border-gray-200 px-3 py-1 text-gray-500">
                 {deal.colorway}
               </span>
             )}
             {deal.gender && (
-              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400 capitalize">
+              <span className="text-xs border border-gray-200 px-3 py-1 text-gray-500 capitalize">
                 {deal.gender}
               </span>
             )}
@@ -160,7 +160,7 @@ export default async function DealPage({ params }: DealPageProps) {
                 {deal.sizes.map((size) => (
                   <span
                     key={size}
-                    className="text-xs border border-white/10 px-2.5 py-1 text-gray-400"
+                    className="text-xs border border-gray-200 px-2.5 py-1 text-gray-500"
                   >
                     {size}
                   </span>
@@ -198,11 +198,11 @@ export default async function DealPage({ params }: DealPageProps) {
 
           {/* Description */}
           {deal.description && (
-            <div className="mt-8 pt-8 border-t border-white/10">
+            <div className="mt-8 pt-8 border-t border-gray-200">
               <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">
                 Description
               </p>
-              <p className="text-sm text-gray-400 leading-relaxed">
+              <p className="text-sm text-gray-500 leading-relaxed">
                 {deal.description}
               </p>
             </div>
@@ -213,7 +213,7 @@ export default async function DealPage({ params }: DealPageProps) {
       {/* Related deals */}
       {related.length > 0 && (
         <section>
-          <div className="border-t border-white/10 pt-10 mb-6">
+          <div className="border-t border-gray-200 pt-10 mb-6">
             <p className="section-heading">More Like This</p>
             <h2 className="text-lg font-bold tracking-tight">Related Deals</h2>
           </div>
