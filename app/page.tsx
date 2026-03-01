@@ -108,8 +108,8 @@ export default async function HomePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <p className="text-xs uppercase tracking-widest text-gray-500 mb-0.5">🔥 Hot Deals</p>
-                <h2 className="text-sm font-bold uppercase tracking-wide">50%+ Off Right Now</h2>
+                <p className="text-xs uppercase tracking-widest text-gray-500 mb-0.5"></p>
+                <h2 className="text-sm font-bold uppercase tracking-wide"></h2>
               </div>
               <Link href="/deals?tier=50" className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors">View All →</Link>
             </div>
