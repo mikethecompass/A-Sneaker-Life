@@ -88,11 +88,11 @@ export async function POST(req: NextRequest) {
       const docId = existing?._id ?? `deal-${deal.network}-${deal.networkId}`;
 
       await sanityWriteClient
-        .patch(docId)
-        .set({
+        .createOrReplace({
+          _id: docId,
           _type: "deal",
           title: deal.title,
-          "slug.current": deal.slug,
+          slug: { _type: "slug", current: deal.slug },
           description: deal.description,
           imageUrl: deal.imageUrl,
           affiliateUrl: deal.affiliateUrl,
@@ -109,12 +109,10 @@ export async function POST(req: NextRequest) {
           colorway: deal.colorway,
           gender: deal.gender,
           sizes: deal.sizes,
-        })
-        .setIfMissing({
           publishedAt: new Date().toISOString(),
+          featured: false,
           brand: null,
-        })
-        .commit({ autoGenerateArrayKeys: true });
+        });
 
       results.upserted++;
     } catch (err) {
