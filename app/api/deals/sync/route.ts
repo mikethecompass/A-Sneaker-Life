@@ -65,24 +65,10 @@ export async function POST(req: NextRequest) {
 
   results.afterFilter = rawDeals.length;
 
-  // ── 2. Wrap each deal URL with Switchy ────────────────────────────────────
-  const switchyResults = await Promise.allSettled(
-    rawDeals.map(async (raw) => {
-      const slug = buildSwitchySlug(raw.brand, raw.title, raw.networkId);
-      const affiliateUrl = await createSwitchyLink(raw.rawAffiliateUrl, slug);
-      return { raw, affiliateUrl };
-    })
-  );
-
+  // ── 2. Normalize deals (skip Switchy, use raw affiliate URL) ─────────────
   const wrappedDeals: NormalizedDeal[] = [];
-
-  for (const result of switchyResults) {
-    if (result.status === "rejected") {
-      results.errors.push(`Switchy wrap failed: ${result.reason}`);
-      continue;
-    }
-
-    const normalized = normalizeDeal(result.value.raw, result.value.affiliateUrl);
+  for (const raw of rawDeals) {
+    const normalized = normalizeDeal(raw, raw.rawAffiliateUrl);
     if (normalized) wrappedDeals.push(normalized);
   }
 
