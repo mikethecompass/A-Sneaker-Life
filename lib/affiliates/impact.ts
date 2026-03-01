@@ -111,27 +111,26 @@ export async function fetchImpactDeals(
     
     for (const item of items) {
       if (!isSneakerRelated(item)) continue;
-      const originalPrice = parseFloat(item.Price) || 0;
-      const salePrice = parseFloat(item.SalePrice) || 0;
-      if (!originalPrice) continue;
-      const effectiveSalePrice = salePrice > 0 && salePrice < originalPrice ? salePrice : originalPrice;
-      const discountPercent = salePrice > 0 ? Math.round(((originalPrice - salePrice) / originalPrice) * 100) : 0;
-      if (discountPercent < minDiscount && salePrice > 0) continue;
+      const originalPrice = parseFloat(item.OriginalPrice) || 0;
+      const currentPrice = parseFloat(item.CurrentPrice) || 0;
+      if (!originalPrice || !currentPrice) continue;
+      const discountPercent = item.DiscountPercentage ? parseFloat(item.DiscountPercentage) : Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+      if (discountPercent < minDiscount) continue;
       allDeals.push({
-        networkId: String(item.Id ?? item.SKU ?? Math.random()),
+        networkId: String(item.Id),
         network: "impact",
-        title: item.Name ?? item.Title ?? "",
+        title: item.Name ?? "",
         description: item.Description ?? "",
-        brand: item.BrandName ?? "",
-        imageUrl: item.ImageUrl ?? item.Image ?? "",
-        rawAffiliateUrl: item.TrackingLink ?? item.Url ?? "",
+        brand: item.Manufacturer ?? "",
+        imageUrl: item.ImageUrl ?? "",
+        rawAffiliateUrl: item.Url ?? "",
         originalPrice,
-        salePrice: effectiveSalePrice,
+        salePrice: currentPrice,
         discountPercent,
         currency: item.Currency ?? "USD",
         expiresAt: item.ExpirationDate ?? null,
-        categories: Array.isArray(item.Categories) ? item.Categories : [],
-        sku: item.SKU ?? undefined,
+        categories: Array.isArray(item.Labels) ? item.Labels : [],
+        sku: item.CatalogItemId ?? undefined,
       });
     }
   }
