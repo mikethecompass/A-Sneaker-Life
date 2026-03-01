@@ -84,8 +84,6 @@ async function fetchPage(
     keywords: keyword,
     "page-number": String(pageNum),
     "records-per-page": String(pageSize),
-    // Only fetch items that are on promotion/sale
-    "promotion-type": "Sale",
     // Only active advertisers
     "advertiser-ids": "joined",
   });
