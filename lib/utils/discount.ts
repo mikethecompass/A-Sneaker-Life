@@ -64,7 +64,7 @@ export function normalizeDeal(raw: RawDeal, affiliateUrl: string): NormalizedDea
     ...raw,
     affiliateUrl,
     discountTier: tier,
-    slug: raw.slug,
+    slug: `${raw.network}-${raw.networkId}`,
   };
 }
 
