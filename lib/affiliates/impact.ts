@@ -79,62 +79,63 @@ export async function fetchImpactDeals(
   const auth = buildBasicAuth();
 
   // Impact's Ads endpoint supports keyword search and pagination
-  const params = new URLSearchParams({
-    PageSize: String(pageSize),
-  });
+  // Sneaker-focused catalog IDs from Impact
+  // 2425 = adidas (60k items)
+  const SNEAKER_CATALOG_IDS = ["2425"];
 
-  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Catalogs/ItemSearch?${params}`;
+  const allDeals: RawDeal[] = [];
 
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Basic ${auth}`,
-      Accept: "application/json",
-    },
-    cache: "no-store", // cache 30 min for Next.js fetch cache
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Impact API error ${res.status}: ${body}`);
-  }
-
-  const data: ImpactApiResponse = await res.json();
-
-  const deals: RawDeal[] = [];
-
-  for (const item of data.Items ?? []) {
-    // Skip non-sneaker items
-    if (!isSneakerRelated(item)) continue;
-
-    const originalPrice = Number(item.OriginalPrice) || 0;
-    const salePrice = Number(item.SalePrice) || 0;
-
-    // Skip items with no pricing data
-    if (!originalPrice || !salePrice) continue;
-
-    const discountPercent =
-      item.Discount != null ? Number(item.Discount) : calcDiscount(originalPrice, salePrice);
-
-    // Apply minimum discount filter
-    if (discountPercent < minDiscount) continue;
-
-    deals.push({
-      networkId: item.Id,
-      network: "impact",
-      title: item.Name,
-      description: item.Description ?? "",
-      brand: item.BrandName ?? "",
-      imageUrl: item.ImageUrl ?? "",
-      rawAffiliateUrl: item.DirectUrl,
-      originalPrice,
-      salePrice,
-      discountPercent,
-      currency: item.Currency ?? "USD",
-      expiresAt: item.ExpirationDate ?? null,
-      categories: Array.isArray(item.Categories) ? item.Categories : [],
-      sku: item.SKU,
+  for (const catalogId of SNEAKER_CATALOG_IDS) {
+    const params = new URLSearchParams({
+      PageSize: String(pageSize),
     });
+
+    const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Catalogs/${catalogId}/Items?${params}`;
+
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Basic ${auth}`,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Impact catalog ${catalogId} error: ${body}`);
+      continue;
+    }
+
+    const data = await res.json();
+    const items = data?.Items ?? [];
+    
+    for (const item of items) {
+      if (!isSneakerRelated(item)) continue;
+      const originalPrice = parseFloat(item.Price) || 0;
+      const salePrice = parseFloat(item.SalePrice) || 0;
+      if (!originalPrice) continue;
+      const effectiveSalePrice = salePrice > 0 && salePrice < originalPrice ? salePrice : originalPrice;
+      const discountPercent = salePrice > 0 ? Math.round(((originalPrice - salePrice) / originalPrice) * 100) : 0;
+      if (discountPercent < minDiscount && salePrice > 0) continue;
+      allDeals.push({
+        networkId: String(item.Id ?? item.SKU ?? Math.random()),
+        network: "impact",
+        title: item.Name ?? item.Title ?? "",
+        description: item.Description ?? "",
+        brand: item.BrandName ?? "",
+        imageUrl: item.ImageUrl ?? item.Image ?? "",
+        rawAffiliateUrl: item.TrackingLink ?? item.Url ?? "",
+        originalPrice,
+        salePrice: effectiveSalePrice,
+        discountPercent,
+        currency: item.Currency ?? "USD",
+        expiresAt: item.ExpirationDate ?? null,
+        categories: Array.isArray(item.Categories) ? item.Categories : [],
+        sku: item.SKU ?? undefined,
+      });
+    }
   }
 
-  return deals;
+  return allDeals;
 }
+
