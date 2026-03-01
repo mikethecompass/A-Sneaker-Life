@@ -57,7 +57,7 @@ function toRawDeal(product: CjProduct, discountPercent: number): RawDeal {
     expiresAt: product["promotion-end-date"] ?? null,
     categories: [],
     sku: product.sku,
-    slug: slugify(`${product.advertiser}-${product["link-name"]}-${product["link-id"]}`),
+    networkId: slugify(`${product.advertiser}-${product["link-name"]}-${product["link-id"]}`),
   };
 }
 
