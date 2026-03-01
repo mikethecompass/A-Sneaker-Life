@@ -81,10 +81,11 @@ export async function fetchImpactDeals(
   // Impact's Ads endpoint supports keyword search and pagination
   const params = new URLSearchParams({
     PageSize: String(pageSize),
-    AdStatus: "ACTIVE",
+    Keywords: "sneakers shoes Nike Adidas Jordan",
+    OnSale: "true",
   });
 
-  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Ads?${params}`;
+  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Catalogs/ItemSearch?${params}`;
 
   const res = await fetch(url, {
     headers: {
