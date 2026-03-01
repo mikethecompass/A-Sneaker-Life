@@ -73,20 +73,20 @@ export default async function DealPage({ params }: DealPageProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-[#0a0a0a] min-h-screen text-white">
       {/* Breadcrumb */}
-      <nav className="text-xs text-brand-gray-400 uppercase tracking-widest mb-8 flex gap-2">
-        <Link href="/" className="hover:text-brand-black transition-colors">Home</Link>
+      <nav className="text-xs text-gray-500 uppercase tracking-widest mb-8 flex gap-2">
+        <Link href="/" className="hover:text-white transition-colors">Home</Link>
         <span>/</span>
-        <Link href="/deals" className="hover:text-brand-black transition-colors">Deals</Link>
+        <Link href="/deals" className="hover:text-white transition-colors">Deals</Link>
         <span>/</span>
-        <span className="text-brand-black truncate max-w-[200px]">{deal.title}</span>
+        <span className="text-white truncate max-w-[200px]">{deal.title}</span>
       </nav>
 
       {/* Main deal layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16">
         {/* Image */}
-        <div className="relative aspect-square bg-brand-gray-50 border border-brand-gray-100">
+        <div className="relative aspect-square bg-[#141414] border border-white/10">
           {deal.imageUrl ? (
             <Image
               src={deal.imageUrl}
@@ -98,7 +98,7 @@ export default async function DealPage({ params }: DealPageProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-xs uppercase tracking-widest text-brand-gray-400">
+              <span className="text-xs uppercase tracking-widest text-gray-500">
                 No Image Available
               </span>
             </div>
@@ -113,7 +113,7 @@ export default async function DealPage({ params }: DealPageProps) {
         {/* Details */}
         <div className="flex flex-col">
           {deal.brand && (
-            <p className="text-xs uppercase tracking-widest text-brand-gray-400 mb-2">
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">
               {deal.brand.name}
             </p>
           )}
@@ -123,28 +123,28 @@ export default async function DealPage({ params }: DealPageProps) {
           {/* Pricing */}
           <div className="flex items-baseline gap-4 mb-2">
             <span className="text-3xl font-bold">{formatPrice(deal.salePrice)}</span>
-            <span className="text-base text-brand-gray-400 line-through">
+            <span className="text-base text-gray-500 line-through">
               {formatPrice(deal.originalPrice)}
             </span>
           </div>
-          <p className="text-sm text-brand-gray-600 mb-6">
+          <p className="text-sm text-gray-400 mb-6">
             You save {formatPrice(savings)} ({deal.discountPercent}% off)
           </p>
 
           {/* Metadata pills */}
           <div className="flex flex-wrap gap-2 mb-6">
             {deal.sku && (
-              <span className="text-xs border border-brand-gray-200 px-3 py-1 text-brand-gray-600">
+              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400">
                 SKU: {deal.sku}
               </span>
             )}
             {deal.colorway && (
-              <span className="text-xs border border-brand-gray-200 px-3 py-1 text-brand-gray-600">
+              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400">
                 {deal.colorway}
               </span>
             )}
             {deal.gender && (
-              <span className="text-xs border border-brand-gray-200 px-3 py-1 text-brand-gray-600 capitalize">
+              <span className="text-xs border border-white/10 px-3 py-1 text-gray-400 capitalize">
                 {deal.gender}
               </span>
             )}
@@ -153,14 +153,14 @@ export default async function DealPage({ params }: DealPageProps) {
           {/* Available sizes */}
           {deal.sizes && deal.sizes.length > 0 && (
             <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-brand-gray-400 mb-2">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">
                 Available Sizes
               </p>
               <div className="flex flex-wrap gap-2">
                 {deal.sizes.map((size) => (
                   <span
                     key={size}
-                    className="text-xs border border-brand-gray-200 px-2.5 py-1 text-brand-gray-600"
+                    className="text-xs border border-white/10 px-2.5 py-1 text-gray-400"
                   >
                     {size}
                   </span>
@@ -171,7 +171,7 @@ export default async function DealPage({ params }: DealPageProps) {
 
           {/* Expiry */}
           {deal.expiresAt && (
-            <p className="text-xs text-brand-gray-400 mb-6">
+            <p className="text-xs text-gray-500 mb-6">
               Deal expires: {new Date(deal.expiresAt).toLocaleDateString("en-US", {
                 month: "long",
                 day: "numeric",
@@ -185,24 +185,24 @@ export default async function DealPage({ params }: DealPageProps) {
             href={deal.affiliateUrl}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className="block w-full text-center bg-brand-black text-brand-white text-xs uppercase
-                       tracking-widest py-4 hover:bg-brand-gray-800 transition-colors mb-2"
+            className="block w-full text-center bg-white text-black text-xs uppercase
+                       tracking-widest py-4 hover:bg-gray-200 transition-colors mb-2"
           >
             Shop Deal — {formatPrice(deal.salePrice)}
           </a>
 
           {/* FTC Disclosure */}
-          <p className="text-xs text-brand-gray-400 text-center">
+          <p className="text-xs text-gray-500 text-center">
             #ad — Affiliate link. We may earn a commission at no extra cost to you.
           </p>
 
           {/* Description */}
           {deal.description && (
-            <div className="mt-8 pt-8 border-t border-brand-gray-100">
-              <p className="text-xs uppercase tracking-widest text-brand-gray-400 mb-3">
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">
                 Description
               </p>
-              <p className="text-sm text-brand-gray-600 leading-relaxed">
+              <p className="text-sm text-gray-400 leading-relaxed">
                 {deal.description}
               </p>
             </div>
@@ -213,7 +213,7 @@ export default async function DealPage({ params }: DealPageProps) {
       {/* Related deals */}
       {related.length > 0 && (
         <section>
-          <div className="border-t border-brand-gray-100 pt-10 mb-6">
+          <div className="border-t border-white/10 pt-10 mb-6">
             <p className="section-heading">More Like This</p>
             <h2 className="text-lg font-bold tracking-tight">Related Deals</h2>
           </div>
