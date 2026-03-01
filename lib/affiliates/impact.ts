@@ -45,7 +45,7 @@ function isSneakerRelated(product: { Name: string; Description: string; Categori
   const haystack = [
     product.Name,
     product.Description,
-    ...product.Categories,
+    ...(Array.isArray(product.Categories) ? product.Categories : []),
   ]
     .join(" ")
     .toLowerCase();
