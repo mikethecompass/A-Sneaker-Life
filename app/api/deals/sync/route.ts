@@ -76,49 +76,44 @@ export async function POST(req: NextRequest) {
   const deduped = deduplicateDeals(sortDeals(wrappedDeals));
   results.afterDedup = deduped.length;
 
-  // ── 4. Upsert into Sanity ─────────────────────────────────────────────────
-  for (const deal of deduped) {
+  // ── 4. Upsert into Sanity (batched) ───────────────────────────────────────
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < deduped.length; i += BATCH_SIZE) {
+    const batch = deduped.slice(i, i + BATCH_SIZE);
+    const mutations = batch.map((deal) => ({
+      createOrReplace: {
+        _id: `deal-${deal.network}-${deal.networkId}`,
+        _type: "deal",
+        title: deal.title,
+        slug: { _type: "slug", current: deal.slug },
+        description: deal.description,
+        imageUrl: deal.imageUrl,
+        affiliateUrl: deal.affiliateUrl,
+        originalPrice: deal.originalPrice,
+        salePrice: deal.salePrice,
+        discountPercent: deal.discountPercent,
+        discountTier: deal.discountTier,
+        currency: deal.currency,
+        expiresAt: deal.expiresAt,
+        categories: deal.categories,
+        network: deal.network,
+        networkId: deal.networkId,
+        sku: deal.sku,
+        colorway: deal.colorway,
+        gender: deal.gender,
+        sizes: deal.sizes,
+        publishedAt: new Date().toISOString(),
+        featured: false,
+        brand: null,
+      },
+    }));
     try {
-      // Check if this deal already exists in Sanity
-      const existing = await sanityWriteClient.fetch<{ _id: string } | null>(
-        `*[_type == "deal" && network == $network && networkId == $networkId][0]{ _id }`,
-        { network: deal.network, networkId: deal.networkId }
-      );
-
-      const docId = existing?._id ?? `deal-${deal.network}-${deal.networkId}`;
-
-      await sanityWriteClient
-        .createOrReplace({
-          _id: docId,
-          _type: "deal",
-          title: deal.title,
-          slug: { _type: "slug", current: deal.slug },
-          description: deal.description,
-          imageUrl: deal.imageUrl,
-          affiliateUrl: deal.affiliateUrl,
-          originalPrice: deal.originalPrice,
-          salePrice: deal.salePrice,
-          discountPercent: deal.discountPercent,
-          discountTier: deal.discountTier,
-          currency: deal.currency,
-          expiresAt: deal.expiresAt,
-          categories: deal.categories,
-          network: deal.network,
-          networkId: deal.networkId,
-          sku: deal.sku,
-          colorway: deal.colorway,
-          gender: deal.gender,
-          sizes: deal.sizes,
-          publishedAt: new Date().toISOString(),
-          featured: false,
-          brand: null,
-        });
-
-      results.upserted++;
+      await sanityWriteClient.mutate(mutations);
+      results.upserted += batch.length;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      results.errors.push(`Sanity upsert failed for ${deal.networkId}: ${msg}`);
-      results.skipped++;
+      results.errors.push(`Batch upsert failed: ${msg}`);
+      results.skipped += batch.length;
     }
   }
 
