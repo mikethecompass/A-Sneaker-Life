@@ -80,8 +80,12 @@ export async function fetchImpactDeals(
 
   // Impact's Ads endpoint supports keyword search and pagination
   // Sneaker-focused catalog IDs from Impact
-  // 2425 = adidas (60k items)
-  const SNEAKER_CATALOG_IDS = ["2425"];
+  const SNEAKER_CATALOG_IDS = [
+    "2425",  // adidas
+    "5700",  // Foot Locker
+    "5705",  // Champs Sports
+    "10393", // New Balance
+  ];
 
   const allDeals: RawDeal[] = [];
 
