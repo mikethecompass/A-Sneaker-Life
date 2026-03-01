@@ -15,14 +15,26 @@ const CJ_BASE_URL = "https://product-search.api.cj.com/v2";
 
 // Sneaker brand/keyword search terms for CJ queries
 const SNEAKER_SEARCH_TERMS = [
-  "sneakers",
-  "athletic shoes",
-  "running shoes",
-  "basketball shoes",
   "Nike shoes",
   "Adidas shoes",
   "Jordan shoes",
   "New Balance shoes",
+  "Puma shoes",
+  "Reebok shoes",
+  "Converse shoes",
+  "Vans shoes",
+  "Asics shoes",
+  "Saucony shoes",
+];
+
+const BLOCKED_BRANDS = [
+  "allbirds",
+  "skechers",
+  "crocs",
+  "ugg",
+  "birkenstock",
+  "clarks",
+  "merrell",
 ];
 
 function slugify(text: string): string {
@@ -144,7 +156,10 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
 
       if (discountPercent < minDiscount) continue;
 
-      deals.push(toRawDeal(product, discountPercent));
+      const rawDeal = toRawDeal(product, discountPercent);
+      const brandLower = rawDeal.brand.toLowerCase();
+      if (BLOCKED_BRANDS.some(b => brandLower.includes(b))) continue;
+      deals.push(rawDeal);
     }
   }
 
