@@ -87,35 +87,26 @@ export async function fetchImpactDeals(
     "10393", // New Balance
   ];
 
-  const allDeals: RawDeal[] = [];
-
-  for (const catalogId of SNEAKER_CATALOG_IDS) {
+  const fetchCatalog = async (catalogId: string) => {
     const params = new URLSearchParams({
-      PageSize: "50",
+      PageSize: "25",
       SubCategory: "Sale",
-      Category: "Shoes",
     });
-
     const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Catalogs/${catalogId}/Items?${params}`;
-
     const res = await fetch(url, {
-      headers: {
-        Authorization: `Basic ${auth}`,
-        Accept: "application/json",
-      },
+      headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
       cache: "no-store",
     });
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Impact catalog ${catalogId} error: ${body}`);
-      continue;
-    }
-
+    if (!res.ok) return [];
     const data = await res.json();
-    const items = data?.Items ?? [];
-    
-    for (const item of items) {
+    return data?.Items ?? [];
+  };
+
+  const catalogResults = await Promise.all(SNEAKER_CATALOG_IDS.map(fetchCatalog));
+  const allItems = catalogResults.flat();
+  const allDeals: RawDeal[] = [];
+
+  for (const item of allItems) {
       if (!isSneakerRelated(item)) continue;
       const originalPrice = parseFloat(item.OriginalPrice) || 0;
       const currentPrice = parseFloat(item.CurrentPrice) || 0;
@@ -138,7 +129,6 @@ export async function fetchImpactDeals(
         categories: Array.isArray(item.Labels) ? item.Labels : [],
         sku: item.CatalogItemId ?? undefined,
       });
-    }
   }
 
   return allDeals;
