@@ -6,6 +6,21 @@ import type { Metadata } from "next";
 
 export const revalidate = 300;
 
+const RETAILERS = [
+  { label: "Foot Locker", url: (q: string) => `https://www.footlocker.com/search?query=${encodeURIComponent(q)}`, tracking: "https://footlocker.7eer.net/c/1454343/228816/3057?u=" },
+  { label: "Champs Sports", url: (q: string) => `https://www.champssports.com/search?query=${encodeURIComponent(q)}`, tracking: "https://champssports.7eer.net/c/1454343/228817/3057?u=" },
+  { label: "adidas", url: (q: string) => `https://www.adidas.com/us/search?q=${encodeURIComponent(q)}`, tracking: "https://adidas.7eer.net/c/1454343/376195/4270?u=" },
+  { label: "New Balance", url: (q: string) => `https://www.newbalance.com/search?q=${encodeURIComponent(q)}`, tracking: null },
+  { label: "StockX", url: (q: string) => `https://stockx.com/search?s=${encodeURIComponent(q)}`, tracking: null },
+  { label: "GOAT", url: (q: string) => `https://www.goat.com/search?query=${encodeURIComponent(q)}`, tracking: null },
+];
+
+function getRetailerLink(retailer: typeof RETAILERS[0], query: string) {
+  const dest = retailer.url(query);
+  if (retailer.tracking) return retailer.tracking + encodeURIComponent(dest);
+  return dest;
+}
+
 async function getRelease(slug: string) {
   return sanityClient.fetch(`*[_type == "release" && (slug.current == $slug || _id == $slug)][0] {
     _id, title, slug, brand->{name}, colorway, sku, imageUrl,
@@ -115,17 +130,16 @@ export default async function ReleasePage({ params }: { params: { slug: string }
             </div>
 
             {/* Buy Links */}
-            {buyLinks.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Where to Buy</p>
-                {buyLinks.map((link) => (
-                  <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer sponsored"
-                    className="block w-full text-center bg-white text-black text-xs uppercase tracking-widest py-3 rounded font-bold hover:bg-gray-200 transition-colors">
-                    Shop on {link.label}
-                  </a>
-                ))}
-              </div>
-            )}
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Where to Buy</p>
+              {RETAILERS.map((retailer) => (
+                <a key={retailer.label} href={getRetailerLink(retailer, r.title)} target="_blank" rel="noopener noreferrer sponsored"
+                  className="flex items-center justify-between w-full bg-white/5 border border-white/10 text-white text-xs uppercase tracking-widest px-4 py-3 rounded font-bold hover:bg-white hover:text-black transition-colors group">
+                  <span>Shop {retailer.label}</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-50 group-hover:opacity-100"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+              ))}
+            </div>
           </div>
         </div>
 
