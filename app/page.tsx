@@ -85,7 +85,7 @@ export default async function HomePage() {
                           <p className="text-[10px] uppercase tracking-widest text-gray-400">{release.brand?.name}</p>
                           <p className="text-xs font-semibold line-clamp-1 group-hover:underline">{release.title}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                            {release.retailPrice > 0 && <span className="text-[10px] text-green-600 font-bold">{formatPrice(release.retailPrice)}</span>}
+                            {(release.retailPrice ?? 0) > 0 && <span className="text-[10px] text-green-600 font-bold">{formatPrice(release.retailPrice)}</span>}
                             <span className="text-[10px] text-gray-400">{days <= 0 ? "Today" : days === 1 ? "Tomorrow" : `${days}d`}</span>
                           </div>
                         </div>
