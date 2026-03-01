@@ -89,7 +89,7 @@ export async function fetchImpactDeals(
     AdStatus: "ACTIVE",
   });
 
-  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Ads?${params}`;
+  const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/CatalogItems?${params}`;
 
   const res = await fetch(url, {
     headers: {
