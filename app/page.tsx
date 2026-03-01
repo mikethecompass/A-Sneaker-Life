@@ -40,13 +40,13 @@ export default async function HomePage() {
       {/* YouTube Hero */}
       {latestVideo && (
         <section className="w-full">
-          <div className="relative w-full" style={{ paddingBottom: "42%" }}>
+          <div className="relative w-full max-w-3xl mx-auto" style={{ paddingBottom: "min(56.25%, 480px)" }}>
             <iframe
               src={`https://www.youtube.com/embed/${latestVideo.youtubeId}?autoplay=0&rel=0&modestbranding=1`}
               title={latestVideo.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
-              className="absolute inset-0 w-full h-full"
+              className="absolute inset-0 w-full h-full rounded-lg"
               style={{ border: "none" }}
             />
           </div>

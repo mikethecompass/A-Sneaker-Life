@@ -11,7 +11,7 @@ import type { DiscountTier } from "@/lib/affiliates/types";
 export const revalidate = 300;
 
 interface DealsPageProps {
-  searchParams: { tier?: string };
+  searchParams: { tier?: string; q?: string };
 }
 
 export async function generateMetadata({ searchParams }: DealsPageProps): Promise<Metadata> {
@@ -25,11 +25,21 @@ export async function generateMetadata({ searchParams }: DealsPageProps): Promis
   };
 }
 
-async function getDeals(tier: DiscountTier | null): Promise<DealCardProps[]> {
+async function getDeals(tier: DiscountTier | null, q?: string): Promise<DealCardProps[]> {
+  let deals: DealCardProps[];
   if (tier) {
-    return sanityClient.fetch(DEALS_BY_TIER_QUERY, { tier });
+    deals = await sanityClient.fetch(DEALS_BY_TIER_QUERY, { tier });
+  } else {
+    deals = await sanityClient.fetch(ALL_DEALS_QUERY);
   }
-  return sanityClient.fetch(ALL_DEALS_QUERY);
+  if (q) {
+    const lower = q.toLowerCase();
+    deals = deals.filter(d =>
+      d.title?.toLowerCase().includes(lower) ||
+      d.brand?.name?.toLowerCase().includes(lower)
+    );
+  }
+  return deals;
 }
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
@@ -37,9 +47,10 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   const tier = (tierParam && [10, 20, 30, 50].includes(tierParam))
     ? tierParam as DiscountTier
     : null;
+  const q = searchParams.q ?? undefined;
 
-  const deals = await getDeals(tier);
-  const heading = tier ? DISCOUNT_TIER_LABELS[tier] : "All Deals";
+  const deals = await getDeals(tier, q);
+  const heading = q ? `Results for "${q}"` : tier ? DISCOUNT_TIER_LABELS[tier] : "All Deals";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 bg-[#0a0a0a] min-h-screen text-white">
