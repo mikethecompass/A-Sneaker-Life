@@ -87,8 +87,9 @@ export async function fetchImpactDeals(
 
   for (const catalogId of SNEAKER_CATALOG_IDS) {
     const params = new URLSearchParams({
-      PageSize: String(pageSize),
+      PageSize: "50",
       SubCategory: "Sale",
+      Category: "Shoes",
     });
 
     const url = `${IMPACT_BASE_URL}/Mediapartners/${process.env.IMPACT_ACCOUNT_SID}/Catalogs/${catalogId}/Items?${params}`;
