@@ -35,7 +35,7 @@ export default async function HomePage() {
   const { deals, latestVideo, recentVideos, upcomingReleases } = await getHomeData();
 
   return (
-    <div className="bg-[#0a0a0a] min-h-screen text-white">
+    <div className="bg-white min-h-screen text-gray-900">
 
       {/* YouTube Hero */}
       {latestVideo && (
@@ -52,7 +52,7 @@ export default async function HomePage() {
           </div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
             <h2 className="text-sm font-bold leading-tight line-clamp-1">{latestVideo.title}</h2>
-            <Link href="/videos" className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors whitespace-nowrap ml-6">
+            <Link href="/videos" className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors whitespace-nowrap ml-6">
               All Videos →
             </Link>
           </div>
@@ -61,11 +61,11 @@ export default async function HomePage() {
 
       {/* Upcoming Releases */}
       {upcomingReleases.length > 0 && (
-        <section className="border-t border-white/10">
+        <section className="border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs uppercase tracking-widest font-bold">Upcoming Releases</h2>
-              <Link href="/releases" className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
+              <Link href="/releases" className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors">
                 Full Calendar →
               </Link>
             </div>
@@ -79,7 +79,7 @@ export default async function HomePage() {
                         <Image src={release.imageUrl} alt={release.title} fill sizes="144px" className="object-contain p-2" unoptimized />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                          <span className="text-[9px] text-gray-400 uppercase">No Image</span>
+                          <span className="text-[9px] text-gray-500 uppercase">No Image</span>
                         </div>
                       )}
                     </div>
@@ -99,11 +99,11 @@ export default async function HomePage() {
 
       {/* Deals Grid */}
       {deals.length > 0 && (
-        <section className="border-t border-white/10">
+        <section className="border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xs uppercase tracking-widest font-bold">Latest Deals</h2>
-              <Link href="/deals" className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors">View All →</Link>
+              <Link href="/deals" className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors">View All →</Link>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {deals.map((deal) => <DarkDealCard key={deal._id} deal={deal} />)}
@@ -114,11 +114,11 @@ export default async function HomePage() {
 
       {/* Videos Grid */}
       {recentVideos.length > 0 && (
-        <section className="border-t border-white/10">
+        <section className="border-t border-gray-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xs uppercase tracking-widest font-bold">More Videos</h2>
-              <Link href="/videos" className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors">View All →</Link>
+              <Link href="/videos" className="text-xs uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors">View All →</Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {recentVideos.map((video) => (
@@ -148,24 +148,24 @@ export default async function HomePage() {
 function DarkDealCard({ deal }: { deal: DealCardProps }) {
   const { title, slug, brand, imageUrl, affiliateUrl, originalPrice, salePrice, discountPercent, currency = "USD" } = deal;
   return (
-    <article className="group bg-[#141414] rounded-lg overflow-hidden hover:bg-[#1a1a1a] transition-colors">
+    <article className="group bg-gray-50 rounded-lg overflow-hidden hover:bg-gray-100 transition-colors">
       <Link href={`/deals/${slug.current}`} className="block relative aspect-square bg-white overflow-hidden">
         {imageUrl ? (
           <Image src={imageUrl} alt={title} fill sizes="(max-width: 640px) 50vw, 25vw" className="object-contain p-3 transition-transform duration-300 group-hover:scale-105" unoptimized />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100"><span className="text-xs uppercase tracking-widest text-gray-400">No Image</span></div>
+          <div className="w-full h-full flex items-center justify-center bg-gray-100"><span className="text-xs uppercase tracking-widest text-gray-500">No Image</span></div>
         )}
-        <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded bg-black text-white">
+        <span className="absolute top-2 left-2 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded bg-black text-gray-900">
           {discountPercent}% off
         </span>
       </Link>
       <div className="p-3">
         {brand && <p className="text-[10px] uppercase tracking-widest text-gray-500 mb-0.5">{brand.name}</p>}
         <Link href={`/deals/${slug.current}`}>
-          <h2 className="text-xs font-medium leading-snug line-clamp-2 mb-2 hover:underline text-gray-200">{title}</h2>
+          <h2 className="text-xs font-medium leading-snug line-clamp-2 mb-2 hover:underline text-gray-700">{title}</h2>
         </Link>
         <div className="flex items-baseline gap-1.5 mb-3">
-          <span className="text-sm font-bold text-white">{formatPrice(salePrice, currency)}</span>
+          <span className="text-sm font-bold text-gray-900">{formatPrice(salePrice, currency)}</span>
           <span className="text-[10px] text-gray-600 line-through">{formatPrice(originalPrice, currency)}</span>
         </div>
         <a href={affiliateUrl} target="_blank" rel="noopener noreferrer sponsored"
