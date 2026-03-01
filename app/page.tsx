@@ -6,7 +6,7 @@ import type { DealCardProps } from "@/components/deals/DealCard";
 import type { VideoItem } from "@/components/videos/VideoGrid";
 import type { ReleaseItem } from "@/components/releases/ReleaseCard";
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 function formatPrice(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
