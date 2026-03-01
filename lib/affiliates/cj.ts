@@ -58,14 +58,14 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
 
   for (const p of products) {
     const originalPrice = parseFloat(p.price?.amount) || 0;
-    const salePrice = parseFloat(p.salePrice?.amount) || originalPrice;
+    const salePrice = parseFloat(p.salePrice?.amount) || 0;
     const currency = p.price?.currency ?? "USD";
 
-    if (!originalPrice || !salePrice) continue;
-    if (salePrice >= originalPrice) continue;
+    if (!originalPrice) continue;
 
-    const discountPercent = calcDiscount(originalPrice, salePrice);
-    if (discountPercent < minDiscount) continue;
+    // If no sale price, still include if it has a regular price
+    const effectiveSalePrice = salePrice > 0 && salePrice < originalPrice ? salePrice : originalPrice;
+    const discountPercent = salePrice > 0 ? calcDiscount(originalPrice, salePrice) : 0;
 
     const brandLower = (p.advertiserName ?? "").toLowerCase();
     if (BLOCKED_BRANDS.some(b => brandLower.includes(b))) continue;
@@ -79,7 +79,7 @@ export async function fetchCjDeals(minDiscount = 10): Promise<RawDeal[]> {
       imageUrl: p.imageLink ?? "",
       rawAffiliateUrl: p.link,
       originalPrice,
-      salePrice,
+      salePrice: effectiveSalePrice,
       discountPercent,
       currency,
       expiresAt: null,
