@@ -5,8 +5,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
-  { label: "Deals", href: "/deals" },
   { label: "Releases", href: "/releases" },
+  { label: "Deals", href: "/deals" },
   { label: "Videos", href: "/videos" },
   { label: "Store", href: "https://shop.asneakerlife.com/collections/all", external: true },
 ];
