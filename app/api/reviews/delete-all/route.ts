@@ -5,13 +5,12 @@ export async function POST(req: Request) {
   const authHeader = req.headers.get("x-cron-secret");
   if (authHeader !== "Bearer secret123") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const reviews = await sanityWriteClient.fetch<{ _id: string }[]>(`*[_type == "review"]{ _id }`);
+  const reviews = await sanityWriteClient.fetch<{ _id: string }[]>(`*[_type == "review"][0..49]{ _id }`);
   
-  let deleted = 0;
-  for (const r of reviews) {
-    await sanityWriteClient.delete(r._id);
-    deleted++;
-  }
+  if (reviews.length === 0) return NextResponse.json({ ok: true, deleted: 0, done: true });
 
-  return NextResponse.json({ ok: true, deleted });
+  const mutations = reviews.map(r => ({ delete: { id: r._id } }));
+  await sanityWriteClient.mutate(mutations);
+
+  return NextResponse.json({ ok: true, deleted: reviews.length, done: false });
 }
