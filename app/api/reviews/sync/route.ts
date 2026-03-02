@@ -17,36 +17,41 @@ function slugify(text: string): string {
 }
 
 async function generateReviewWithAI(title: string, description: string) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  console.log("ANTHROPIC_API_KEY present:", !!apiKey, "length:", apiKey?.length);
+  if (!apiKey) return null;
+
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": process.env.ANTHROPIC_API_KEY!, "anthropic-version": "2023-06-01" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 1000,
+      max_tokens: 800,
       messages: [{
         role: "user",
-        content: `You are a sneaker reviewer. Based on this YouTube video title and description, generate a structured review.
+        content: `You are a sneaker reviewer. Based on this YouTube video title and description, generate a structured review. Respond ONLY with valid JSON, no markdown backticks.
 
 Title: ${title}
-Description: ${description}
+Description: ${description.slice(0, 500)}
 
-Respond ONLY with valid JSON, no markdown:
-{
-  "shoeName": "exact shoe model name",
-  "brand": "brand name",
-  "summary": "2-3 sentence summary of the review",
-  "pros": ["pro 1", "pro 2", "pro 3"],
-  "cons": ["con 1", "con 2"],
-  "verdict": "1 sentence verdict",
-  "rating": 7,
-  "retailPrice": 120
-}`
+{"shoeName":"shoe name","brand":"brand","summary":"2-3 sentences","pros":["pro1","pro2"],"cons":["con1"],"verdict":"one sentence","rating":7,"retailPrice":120}`
       }]
     })
   });
-  const data = await response.json();
-  const text = data.content?.[0]?.text ?? "{}";
-  try { return JSON.parse(text); } catch { return null; }
+
+  const text = await response.text();
+  console.log("Anthropic status:", response.status, "body:", text.slice(0, 300));
+  if (!response.ok) return null;
+
+  try {
+    const data = JSON.parse(text);
+    const content = data.content?.[0]?.text ?? "{}";
+    return JSON.parse(content.replace(/```json|```/g, "").trim());
+  } catch { return null; }
 }
 
 async function getAllYouTubeVideos() {
