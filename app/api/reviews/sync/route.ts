@@ -113,10 +113,22 @@ export async function POST(req: Request) {
         if (!ai) { results.errors.push(`AI failed for ${title}`); continue; }
 
         const slug = slugify(ai.shoeName ?? title);
-        const affiliateLinks = RETAILERS.map(r => ({
+        const brand = (ai.brand ?? "").toLowerCase();
+        const shoe = ai.shoeName ?? title;
+        const relevantRetailers = RETAILERS.filter(r => {
+          const name = r.retailer.toLowerCase();
+          // Always include these
+          if (["foot locker", "champs sports", "stockx", "goat"].includes(name)) return true;
+          // Only include brand-specific retailers if brand matches
+          if (name === "adidas") return brand.includes("adidas") || brand.includes("yeezy");
+          if (name === "nike" || name === "jordan") return brand.includes("nike") || brand.includes("jordan") || brand.includes("air jordan");
+          if (name === "new balance") return brand.includes("new balance");
+          return true;
+        });
+        const affiliateLinks = relevantRetailers.map(r => ({
           _key: r.retailer.replace(/\s/g, ""),
           retailer: r.retailer,
-          url: r.baseUrl + encodeURIComponent(ai.shoeName ?? title),
+          url: r.baseUrl + encodeURIComponent(shoe),
         }));
 
         await sanityWriteClient.createOrReplace({
