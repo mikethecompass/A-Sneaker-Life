@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
   { label: "Releases", href: "/releases" },
+  { label: "Reviews", href: "/reviews" },
   { label: "Deals", href: "/deals" },
   { label: "Videos", href: "/videos" },
   { label: "Store", href: "https://shop.asneakerlife.com/collections/all", external: true },
