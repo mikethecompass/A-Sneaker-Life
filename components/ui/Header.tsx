@@ -8,6 +8,12 @@ const NAV_LINKS = [
   { label: "Deals", href: "/deals" },
   { label: "Releases", href: "/releases" },
   { label: "Videos", href: "/videos" },
+  { label: "Store", href: "https://shop.asneakerlife.com/collections/all", external: true },
+];
+
+const BRANDS = [
+  "Nike", "Jordan", "adidas", "New Balance", "Puma", "Reebok", 
+  "Converse", "Vans", "ASICS", "Under Armour", "Saucony", "Brooks"
 ];
 
 export function Header() {
@@ -92,10 +98,31 @@ export function Header() {
         {/* Category nav */}
         <nav className="flex items-center justify-center gap-8 border-t border-gray-100 dark:border-[#1a1a1a] h-10">
           {NAV_LINKS.map((link) => (
-            <Link key={link.href} href={link.href} className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
-              {link.label}
-            </Link>
+            link.external ? (
+              <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                {link.label}
+              </a>
+            ) : (
+              <Link key={link.href} href={link.href} className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                {link.label}
+              </Link>
+            )
           ))}
+          {/* Brands dropdown */}
+          <div className="relative group">
+            <button className="text-[11px] font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors flex items-center gap-1">
+              Brands
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-48 bg-white dark:bg-[#111] border border-gray-200 dark:border-[#222] shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 z-50">
+              {BRANDS.map((brand) => (
+                <Link key={brand} href={`/deals?q=${encodeURIComponent(brand)}`}
+                  className="block px-4 py-2 text-[11px] uppercase tracking-widest text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] hover:text-gray-900 dark:hover:text-white transition-colors">
+                  {brand}
+                </Link>
+              ))}
+            </div>
+          </div>
         </nav>
       </div>
     </header>
