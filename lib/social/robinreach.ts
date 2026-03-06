@@ -2,14 +2,11 @@
  * RobinReach API client for scheduling/posting to Twitter/X
  */
 
-const FTC_DISCLOSURE = "//Ad";
-const BASE_HASHTAGS = "#SneakerDeals #Sneakers";
-
 interface RobinReachPostResponse {
-  id: string;
-  status: "scheduled" | "published" | "failed";
-  scheduledAt?: string;
-  url?: string;
+  status: boolean;
+  post_id: number;
+  post_status: string;
+  message: string;
 }
 
 export interface TweetDealPayload {
@@ -34,14 +31,14 @@ export function composeDealTweet(deal: TweetDealPayload): string {
       `🔥 ${deal.discountPercent}% OFF the ${deal.brand} "${deal.title}"`,
       `Now ${salePriceStr} (was ${originalStr}) — no code needed`,
       ``,
-      `BUY HERE → ${deal.affiliateUrl} ${FTC_DISCLOSURE}`,
+      `BUY HERE → ${deal.affiliateUrl} //Ad`,
     ];
   } else {
     lines = [
       `PRICE DROP: ${deal.discountPercent}% OFF the ${deal.brand} "${deal.title}"`,
       `Now ${salePriceStr} (was ${originalStr})`,
       ``,
-      `BUY HERE → ${deal.affiliateUrl} ${FTC_DISCLOSURE}`,
+      `BUY HERE → ${deal.affiliateUrl} //Ad`,
     ];
   }
 
@@ -50,30 +47,27 @@ export function composeDealTweet(deal: TweetDealPayload): string {
 
 export async function postDealToTwitter(
   deal: TweetDealPayload,
-  scheduleAt?: string
+  publishTime: string
 ): Promise<RobinReachPostResponse> {
   const apiKey = process.env.ROBINREACH_API_KEY;
   const brandId = process.env.ROBINREACH_BRAND_ID;
-  const accountId = process.env.ROBINREACH_ACCOUNT_ID;
+  const profileId = process.env.ROBINREACH_ACCOUNT_ID;
 
   if (!apiKey) throw new Error("Missing ROBINREACH_API_KEY");
   if (!brandId) throw new Error("Missing ROBINREACH_BRAND_ID");
-  if (!accountId) throw new Error("Missing ROBINREACH_ACCOUNT_ID");
+  if (!profileId) throw new Error("Missing ROBINREACH_ACCOUNT_ID");
 
   const tweetText = composeDealTweet(deal);
 
   const payload: Record<string, unknown> = {
     content: tweetText,
-    social_profile_ids: [parseInt(accountId)],
-    title: `${deal.brand} - ${deal.title}`,
+    social_profile_ids: [parseInt(profileId)],
+    post_status: "schedule",
+    publish_time: publishTime,
   };
 
   if (deal.imageUrl) {
     payload.media_urls = [deal.imageUrl];
-  }
-
-  if (scheduleAt) {
-    payload.publish_time = scheduleAt;
   }
 
   const res = await fetch(
@@ -104,10 +98,11 @@ export async function batchPostDeals(
 
   for (let i = 0; i < Math.min(deals.length, 5); i++) {
     const deal = deals[i];
-    const scheduleAt = i === 0 ? undefined : new Date(now.getTime() + i * 2 * 60 * 1000).toISOString();
+    // Stagger posts 5 minutes apart
+    const publishTime = new Date(now.getTime() + (i + 1) * 5 * 60 * 1000).toISOString();
 
     try {
-      await postDealToTwitter(deal, scheduleAt);
+      await postDealToTwitter(deal, publishTime);
       results.push({ dealId: deal.dealId, success: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
