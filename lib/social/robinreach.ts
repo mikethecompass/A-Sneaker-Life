@@ -23,26 +23,32 @@ export interface TweetDealPayload {
 export function composeDealTweet(deal: TweetDealPayload): string {
   const salePriceStr = `$${deal.salePrice.toFixed(0)}`;
   const originalStr = `$${deal.originalPrice.toFixed(0)}`;
+  const shortTitle = deal.title.length > 50 ? deal.title.substring(0, 47) + "..." : deal.title;
+  const shortBrand = deal.brand.length > 25 ? deal.brand.substring(0, 22) + "..." : deal.brand;
 
   let lines: string[];
 
   if (deal.discountPercent >= 40) {
     lines = [
-      `🔥 ${deal.discountPercent}% OFF the ${deal.brand} "${deal.title}"`,
-      `Now ${salePriceStr} (was ${originalStr}) — no code needed`,
+      `🔥 ${deal.discountPercent}% OFF the ${shortBrand} "${shortTitle}"`,
+      `Now ${salePriceStr} (was ${originalStr})`,
       ``,
       `BUY HERE → ${deal.affiliateUrl} //Ad`,
     ];
   } else {
     lines = [
-      `PRICE DROP: ${deal.discountPercent}% OFF the ${deal.brand} "${deal.title}"`,
+      `PRICE DROP: ${deal.discountPercent}% OFF the ${shortBrand} "${shortTitle}"`,
       `Now ${salePriceStr} (was ${originalStr})`,
       ``,
       `BUY HERE → ${deal.affiliateUrl} //Ad`,
     ];
   }
 
-  return lines.join("\n");
+  const tweet = lines.join("\n");
+  if (tweet.length > 275) {
+    return `${deal.discountPercent}% OFF: ${shortBrand} "${shortTitle}"\nNow ${salePriceStr}\nBUY → ${deal.affiliateUrl} //Ad`;
+  }
+  return tweet;
 }
 
 export async function postDealToTwitter(
@@ -98,7 +104,6 @@ export async function batchPostDeals(
 
   for (let i = 0; i < Math.min(deals.length, 5); i++) {
     const deal = deals[i];
-    // Stagger posts 5 minutes apart
     const publishTime = new Date(now.getTime() + (i + 1) * 5 * 60 * 1000).toISOString();
 
     try {
