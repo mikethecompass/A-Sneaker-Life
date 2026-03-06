@@ -26,8 +26,8 @@ export async function addToVault(
   entry: Omit<VaultEntry, "_id">
 ): Promise<VaultEntry> {
   return sanityWriteClient.create({
-    _type: "vaultEntry",
     ...entry,
+    _type: "vaultEntry",
     addedAt: entry.addedAt || new Date().toISOString(),
   });
 }
