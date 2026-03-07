@@ -16,6 +16,14 @@ function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 96);
 }
 
+function parseDuration(iso: string): number {
+  const match = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return 0;
+  return (parseInt(match[1] || "0") * 3600) +
+         (parseInt(match[2] || "0") * 60) +
+         (parseInt(match[3] || "0"));
+}
+
 async function generateReviewWithAI(title: string, description: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   console.log("ANTHROPIC_API_KEY present:", !!apiKey, "length:", apiKey?.length);
@@ -55,16 +63,32 @@ Description: ${description.slice(0, 500)}
 }
 
 async function getAllYouTubeVideos() {
-  let videos: any[] = [];
+  // Use uploads playlist to get ALL videos (no 200-cap like search endpoint)
+  const uploadsPlaylistId = CHANNEL_ID?.replace("UC", "UU");
+  let videoIds: string[] = [];
   let pageToken = "";
-  
+
+  // Step 1: get all video IDs from uploads playlist
   do {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&maxResults=50&order=date&type=video${pageToken ? `&pageToken=${pageToken}` : ""}&key=${YOUTUBE_API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=contentDetails&playlistId=${uploadsPlaylistId}&maxResults=50${pageToken ? `&pageToken=${pageToken}` : ""}&key=${YOUTUBE_API_KEY}`;
     const res = await fetch(url);
     const data = await res.json();
-    videos = videos.concat(data.items ?? []);
+    const ids = (data.items ?? []).map((v: any) => v.contentDetails?.videoId).filter(Boolean);
+    videoIds = videoIds.concat(ids);
     pageToken = data.nextPageToken ?? "";
-  } while (pageToken && videos.length < 200);
+  } while (pageToken);
+
+  console.log(`Found ${videoIds.length} total video IDs from uploads playlist`);
+
+  // Step 2: fetch full details in batches of 50
+  const videos: any[] = [];
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const chunk = videoIds.slice(i, i + 50).join(",");
+    const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${chunk}&key=${YOUTUBE_API_KEY}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    videos.push(...(data.items ?? []));
+  }
 
   return videos;
 }
@@ -74,7 +98,7 @@ export async function POST(req: Request) {
   if (authHeader !== "Bearer secret123") return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
-  const limit = body.limit ?? 10; // Process N videos at a time to avoid timeout
+  const limit = body.limit ?? 10;
 
   try {
     const videos = await getAllYouTubeVideos();
@@ -87,7 +111,7 @@ export async function POST(req: Request) {
     const existingIds = new Set(existing.map((r) => r.youtubeId));
 
     const toProcess = videos
-      .filter((v) => !existingIds.has(v.id?.videoId))
+      .filter((v) => !existingIds.has(v.id))
       .slice(0, limit);
 
     console.log(`Processing ${toProcess.length} new videos`);
@@ -96,7 +120,7 @@ export async function POST(req: Request) {
 
     for (const video of toProcess) {
       try {
-        const youtubeId = video.id?.videoId;
+        const youtubeId = video.id;
         const title = video.snippet?.title ?? "";
         const description = video.snippet?.description ?? "";
         const thumbnailUrl = video.snippet?.thumbnails?.maxres?.url ?? video.snippet?.thumbnails?.high?.url ?? "";
@@ -104,10 +128,31 @@ export async function POST(req: Request) {
 
         if (!youtubeId || !title) { results.skipped++; continue; }
 
-        // Skip non-sneaker videos
-        const sneakerKeywords = ["review", "unbox", "on feet", "sneaker", "shoe", "jordan", "nike", "adidas", "yeezy", "dunk", "air max", "new balance"];
-        const isRelevant = sneakerKeywords.some(kw => title.toLowerCase().includes(kw) || description.toLowerCase().includes(kw));
-        if (!isRelevant) { results.skipped++; continue; }
+        // Skip Shorts (60 seconds or under)
+        const duration = parseDuration(video.contentDetails?.duration ?? "");
+        if (duration <= 60) { results.skipped++; continue; }
+
+        // Skip if title contains #shorts
+        if (title.toLowerCase().includes("#shorts")) { results.skipped++; continue; }
+
+        // Review keyword filter — expanded to catch all review-style titles
+        const reviewKeywords = [
+          "review",
+          "watch before you buy",
+          "watch this before",
+          "on feet",
+          "on-feet",
+          "first thoughts",
+          "unboxing",
+          "sizing",
+          "worth it",
+          "cop or drop",
+          "should you buy",
+          "honest thoughts",
+          "real talk",
+        ];
+        const isReview = reviewKeywords.some(kw => title.toLowerCase().includes(kw));
+        if (!isReview) { results.skipped++; continue; }
 
         const ai = await generateReviewWithAI(title, description);
         if (!ai) { results.errors.push(`AI failed for ${title}`); continue; }
@@ -117,9 +162,7 @@ export async function POST(req: Request) {
         const shoe = ai.shoeName ?? title;
         const relevantRetailers = RETAILERS.filter(r => {
           const name = r.retailer.toLowerCase();
-          // Always include these
           if (["foot locker", "champs sports", "stockx", "goat"].includes(name)) return true;
-          // Only include brand-specific retailers if brand matches
           if (name === "adidas") return brand.includes("adidas") || brand.includes("yeezy");
           if (name === "nike" || name === "jordan") return brand.includes("nike") || brand.includes("jordan") || brand.includes("air jordan");
           if (name === "new balance") return brand.includes("new balance");
@@ -152,7 +195,6 @@ export async function POST(req: Request) {
         });
 
         results.processed++;
-        // Small delay to avoid rate limiting
         await new Promise(r => setTimeout(r, 500));
       } catch (err) {
         results.errors.push(String(err));
