@@ -135,24 +135,10 @@ export async function POST(req: Request) {
         // Skip if title contains #shorts
         if (title.toLowerCase().includes("#shorts")) { results.skipped++; continue; }
 
-        // Review keyword filter — expanded to catch all review-style titles
-        const reviewKeywords = [
-          "review",
-          "watch before you buy",
-          "watch this before",
-          "on feet",
-          "on-feet",
-          "first thoughts",
-          "unboxing",
-          "sizing",
-          "worth it",
-          "cop or drop",
-          "should you buy",
-          "honest thoughts",
-          "real talk",
-        ];
-        const isReview = reviewKeywords.some(kw => title.toLowerCase().includes(kw));
-        if (!isReview) { results.skipped++; continue; }
+        // Filter out clearly off-topic content (finance, investing, etc.)
+        const offTopicKeywords = ["invest", "stock", "dividend", "wealth", "finance", "bitcoin", "crypto"];
+        const isOffTopic = offTopicKeywords.some(kw => title.toLowerCase().includes(kw));
+        if (isOffTopic) { results.skipped++; continue; }
 
         const ai = await generateReviewWithAI(title, description);
         if (!ai) { results.errors.push(`AI failed for ${title}`); continue; }
