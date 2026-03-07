@@ -21,34 +21,44 @@ export interface TweetDealPayload {
 }
 
 export function composeDealTweet(deal: TweetDealPayload): string {
-  const salePriceStr = `$${deal.salePrice.toFixed(0)}`;
-  const originalStr = `$${deal.originalPrice.toFixed(0)}`;
-  const shortTitle = deal.title.length > 50 ? deal.title.substring(0, 47) + "..." : deal.title;
-  const shortBrand = deal.brand.length > 25 ? deal.brand.substring(0, 22) + "..." : deal.brand;
+  const salePrice = `$${deal.salePrice.toFixed(0)}`;
+  const origPrice = `$${deal.originalPrice.toFixed(0)}`;
+  const pct = deal.discountPercent;
 
-  let lines: string[];
+  // Twitter counts URLs as 23 chars regardless of actual length
+  const urlPlaceholderLen = 23;
+  const suffix = " //Ad";
+  const buyLine = "BUY HERE → ";
 
-  if (deal.discountPercent >= 40) {
-    lines = [
-      `🔥 ${deal.discountPercent}% OFF the ${shortBrand} "${shortTitle}"`,
-      `Now ${salePriceStr} (was ${originalStr})`,
-      ``,
-      `BUY HERE → ${deal.affiliateUrl} //Ad`,
-    ];
-  } else {
-    lines = [
-      `PRICE DROP: ${deal.discountPercent}% OFF the ${shortBrand} "${shortTitle}"`,
-      `Now ${salePriceStr} (was ${originalStr})`,
-      ``,
-      `BUY HERE → ${deal.affiliateUrl} //Ad`,
-    ];
-  }
+  // Try full format first
+  const brandName = deal.brand.length > 20 ? deal.brand.substring(0, 17) + "..." : deal.brand;
+  let titleName = deal.title.length > 45 ? deal.title.substring(0, 42) + "..." : deal.title;
 
-  const tweet = lines.join("\n");
-  if (tweet.length > 275) {
-    return `${deal.discountPercent}% OFF: ${shortBrand} "${shortTitle}"\nNow ${salePriceStr}\nBUY → ${deal.affiliateUrl} //Ad`;
-  }
-  return tweet;
+  let headline = pct >= 40
+    ? `🔥 ${pct}% OFF the ${brandName} "${titleName}"`
+    : `PRICE DROP: ${pct}% OFF the ${brandName} "${titleName}"`;
+
+  let priceLine = `Now ${salePrice} (was ${origPrice})`;
+  let tweet = `${headline}\n${priceLine}\n\n${buyLine}${deal.affiliateUrl}${suffix}`;
+
+  if (tweet.length <= 280) return tweet;
+
+  // Try shorter title
+  titleName = deal.title.length > 30 ? deal.title.substring(0, 27) + "..." : deal.title;
+  headline = `${pct}% OFF: ${brandName} "${titleName}"`;
+  tweet = `${headline}\n${salePrice} (was ${origPrice})\n\n${buyLine}${deal.affiliateUrl}${suffix}`;
+
+  if (tweet.length <= 280) return tweet;
+
+  // Minimal format
+  titleName = deal.title.length > 25 ? deal.title.substring(0, 22) + "..." : deal.title;
+  tweet = `${pct}% OFF ${brandName} "${titleName}"\n${salePrice}\n${deal.affiliateUrl}${suffix}`;
+
+  if (tweet.length <= 280) return tweet;
+
+  // Last resort — just the essentials
+  tweet = `${pct}% OFF — Now ${salePrice}\n${deal.affiliateUrl}${suffix}`;
+  return tweet.substring(0, 280);
 }
 
 export async function postDealToTwitter(
