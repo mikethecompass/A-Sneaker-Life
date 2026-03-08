@@ -16,6 +16,18 @@ const RSS_FEEDS = [
 
 const MAX_ARTICLES = 10;
 
+const SNEAKER_KEYWORDS = [
+  "nike", "adidas", "jordan", "new balance", "puma", "reebok", "vans",
+  "converse", "yeezy", "sneaker", "shoe", "collab", "colorway", "release",
+  "drop", "air max", "dunk", "foamposite", "saucony", "asics", "on feet",
+  "retail",
+];
+
+function isSneakerRelated(title: string): boolean {
+  const lower = title.toLowerCase();
+  return SNEAKER_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -152,6 +164,11 @@ export async function POST(req: NextRequest) {
           { sourceUrl: article.link },
         );
         if (existing) {
+          results.skipped++;
+          continue;
+        }
+
+        if (!isSneakerRelated(article.title)) {
           results.skipped++;
           continue;
         }
