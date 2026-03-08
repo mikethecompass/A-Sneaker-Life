@@ -234,7 +234,7 @@ export async function POST(req: NextRequest) {
         const slug = slugify(ai.title);
         const docId = `news-${hashSourceUrl(article.link)}`;
 
-        const doc: Record<string, unknown> = {
+        const doc: { _id: string; _type: string; [key: string]: unknown } = {
           _id: docId,
           _type: "newsArticle",
           title: ai.title,
