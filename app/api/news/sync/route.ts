@@ -40,24 +40,27 @@ function hashSourceUrl(url: string): string {
   return crypto.createHash("sha256").update(url).digest("hex").slice(0, 12);
 }
 
-function markdownToPortableText(markdown: string) {
-  return markdown
+function textToPortableText(text: string) {
+  return text
     .split(/\n\n+/)
     .filter((p) => p.trim())
-    .map((paragraph, i) => ({
-      _type: "block",
-      _key: `block-${i}`,
-      style: "normal",
-      markDefs: [],
-      children: [
-        {
-          _type: "span",
-          _key: `span-${i}`,
-          text: paragraph.trim(),
-          marks: [],
-        },
-      ],
-    }));
+    .map((paragraph, i) => {
+      const cleaned = paragraph.trim().replace(/^#+\s*/, "");
+      return {
+        _type: "block",
+        _key: `block-${i}`,
+        style: "normal",
+        markDefs: [],
+        children: [
+          {
+            _type: "span",
+            _key: `span-${i}`,
+            text: cleaned,
+            marks: [],
+          },
+        ],
+      };
+    });
 }
 
 async function fetchFeeds(): Promise<
@@ -115,7 +118,7 @@ async function rewriteWithAI(
       model: "claude-sonnet-4-20250514",
       max_tokens: 1500,
       system:
-        "You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a JSON object containing: { title: string, excerpt: string (max 200 chars), body: string (the article in markdown, 250-400 words), brand: string (primary brand), tags: string[] (3-5 relevant tags) }",
+        "You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a JSON object containing: { title: string, excerpt: string (max 200 chars), body: string (plain paragraphs only, 250-400 words — no markdown, no # headers, no ## subheadings, no bullet points, no asterisks — just plain text paragraphs separated by double newlines), brand: string (primary brand), tags: string[] (3-5 relevant tags) }",
       messages: [
         {
           role: "user",
@@ -148,6 +151,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Delete all existing newsArticle documents so fresh versions get created
+    const staleIds: string[] = await sanityWriteClient.fetch(
+      `*[_type == "newsArticle"]._id`,
+    );
+    if (staleIds.length > 0) {
+      const tx = sanityWriteClient.transaction();
+      for (const id of staleIds) {
+        tx.delete(id);
+      }
+      await tx.commit();
+      console.log(`Deleted ${staleIds.length} existing newsArticle documents`);
+    }
+
     const articles = await fetchFeeds();
     console.log(`Fetched ${articles.length} articles from RSS feeds`);
 
@@ -193,7 +209,7 @@ export async function POST(req: NextRequest) {
           title: ai.title,
           slug: { _type: "slug", current: slug },
           excerpt: ai.excerpt?.slice(0, 200) ?? "",
-          body: markdownToPortableText(ai.body),
+          body: textToPortableText(ai.body),
           heroImage: "",
           brand: ai.brand ?? "",
           tags: ai.tags ?? [],
