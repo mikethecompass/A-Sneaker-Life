@@ -151,40 +151,46 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Delete all existing newsArticle documents so fresh versions get created
-    const staleIds: string[] = await sanityWriteClient.fetch(
-      `*[_type == "newsArticle"]._id`,
-    );
-    if (staleIds.length > 0) {
-      const tx = sanityWriteClient.transaction();
-      for (const id of staleIds) {
-        tx.delete(id);
+    const resetParam = new URL(req.url).searchParams.get("reset");
+    let deleted = 0;
+
+    if (resetParam === "true") {
+      const staleIds: string[] = await sanityWriteClient.fetch(
+        `*[_type == "newsArticle"]._id`,
+      );
+      if (staleIds.length > 0) {
+        const tx = sanityWriteClient.transaction();
+        for (const id of staleIds) {
+          tx.delete(id);
+        }
+        await tx.commit();
+        deleted = staleIds.length;
+        console.log(`Deleted ${deleted} existing newsArticle documents`);
       }
-      await tx.commit();
-      console.log(`Deleted ${staleIds.length} existing newsArticle documents`);
     }
 
     const articles = await fetchFeeds();
     console.log(`Fetched ${articles.length} articles from RSS feeds`);
 
-    const results = { created: 0, skipped: 0, errors: [] as string[] };
+    const results = { created: 0, skipped: 0, filtered: 0, deleted, errors: [] as string[] };
     let processed = 0;
 
     for (const article of articles) {
       if (processed >= MAX_ARTICLES) break;
 
       try {
+        // Pre-filter: skip non-sneaker articles before anything else
+        if (!isSneakerRelated(article.title)) {
+          results.filtered++;
+          continue;
+        }
+
         // Deduplicate: check if source URL already exists in Sanity
         const existing = await sanityWriteClient.fetch(
           `*[_type == "newsArticle" && source.url == $sourceUrl][0]`,
           { sourceUrl: article.link },
         );
         if (existing) {
-          results.skipped++;
-          continue;
-        }
-
-        if (!isSneakerRelated(article.title)) {
           results.skipped++;
           continue;
         }
