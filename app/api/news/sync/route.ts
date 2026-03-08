@@ -16,6 +16,18 @@ const RSS_FEEDS = [
 
 const MAX_ARTICLES = 5;
 
+const SNEAKER_KEYWORDS = [
+  "nike", "adidas", "jordan", "new balance", "puma", "reebok", "vans",
+  "converse", "yeezy", "sneaker", "shoe", "collab", "colorway", "release",
+  "drop", "air max", "dunk", "foamposite", "saucony", "asics", "on feet",
+  "retail", "kobe", "lebron", "blazer", "force",
+];
+
+function isSneakerRelated(title: string): boolean {
+  const lower = title.toLowerCase();
+  return SNEAKER_KEYWORDS.some((kw) => lower.includes(kw));
+}
+
 function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -28,16 +40,23 @@ function hashSourceUrl(url: string): string {
   return crypto.createHash("sha256").update(url).digest("hex").slice(0, 12);
 }
 
-function markdownToPortableText(markdown: string) {
+function textToPortableText(text: string) {
   const blocks: object[] = [];
   let blockIndex = 0;
 
-  const lines = markdown.split(/\n/);
-  let currentParagraph: string[] = [];
+  const paragraphs = text.split(/\n\n+/);
 
-  const flushParagraph = () => {
-    const text = currentParagraph.join(" ").trim();
-    if (!text) return;
+  for (const para of paragraphs) {
+    const trimmed = para
+      .trim()
+      .replace(/^#+\s*/gm, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/\n/g, " ")
+      .trim();
+
+    if (!trimmed) continue;
+
     blocks.push({
       _type: "block",
       _key: `block-${blockIndex++}`,
@@ -47,46 +66,13 @@ function markdownToPortableText(markdown: string) {
         {
           _type: "span",
           _key: `span-${blockIndex}`,
-          text: text.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1"),
+          text: trimmed,
           marks: [],
         },
       ],
     });
-    currentParagraph = [];
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    if (!trimmed) {
-      flushParagraph();
-      continue;
-    }
-
-    // Headings -> bold normal block
-    if (trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
-      flushParagraph();
-      blocks.push({
-        _type: "block",
-        _key: `block-${blockIndex++}`,
-        style: trimmed.startsWith("## ") ? "h2" : "h1",
-        markDefs: [],
-        children: [
-          {
-            _type: "span",
-            _key: `span-${blockIndex}`,
-            text: trimmed.replace(/^#+\s/, ""),
-            marks: [],
-          },
-        ],
-      });
-      continue;
-    }
-
-    currentParagraph.push(trimmed);
   }
 
-  flushParagraph();
   return blocks;
 }
 
@@ -96,10 +82,14 @@ async function fetchFeeds(): Promise<
   const parser = new Parser({
     timeout: 8000,
     customFields: {
-      item: [["media:content", "mediaContent"], ["media:thumbnail", "mediaThumbnail"], ["enclosure", "enclosure"]],
+      item: [
+        ["media:content", "mediaContent"],
+        ["media:thumbnail", "mediaThumbnail"],
+        ["enclosure", "enclosure"],
+      ],
     },
   });
-  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48hr window for more results
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
   const feedPromises = RSS_FEEDS.map(async (feed) => {
     try {
@@ -167,7 +157,7 @@ async function rewriteWithAI(
       model: "claude-haiku-4-5-20251001",
       max_tokens: 1200,
       system:
-        "You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a valid JSON object (no markdown, no backticks) containing exactly: { \"title\": string, \"excerpt\": string (max 160 chars, no quotes), \"body\": string (plain prose paragraphs separated by double newlines, 200-350 words, no markdown headers or bullet points), \"brand\": string (primary brand name only), \"tags\": string[] (3-5 lowercase tags) }",
+        'You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a valid JSON object (no markdown, no backticks, no code fences) containing exactly these keys: { "title": string, "excerpt": string (max 160 chars), "body": string (PLAIN TEXT ONLY — absolutely no # headers, no ## subheadings, no bullet points, no asterisks, no markdown of any kind — just plain prose paragraphs separated by double newlines, 200-350 words), "brand": string (primary brand name only), "tags": string[] (3-5 lowercase tags) }',
       messages: [
         {
           role: "user",
@@ -193,6 +183,20 @@ async function rewriteWithAI(
   }
 }
 
+async function deleteAllNewsArticles(): Promise<number> {
+  const ids: string[] = await sanityWriteClient.fetch(
+    `*[_type == "newsArticle"]._id`,
+  );
+  if (!ids.length) return 0;
+
+  const transaction = sanityWriteClient.transaction();
+  for (const id of ids) {
+    transaction.delete(id);
+  }
+  await transaction.commit();
+  return ids.length;
+}
+
 export async function POST(req: NextRequest) {
   const secret =
     req.headers.get("x-cron-secret") ?? req.headers.get("authorization");
@@ -200,11 +204,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const articles = await fetchFeeds();
-    console.log(`Fetched ${articles.length} articles from RSS feeds`);
+  const reqUrl = new URL(req.url);
+  const reset = reqUrl.searchParams.get("reset") === "true";
 
-    const results = { created: 0, skipped: 0, errors: [] as string[] };
+  let deleted = 0;
+  if (reset) {
+    deleted = await deleteAllNewsArticles();
+    console.log(`Deleted ${deleted} existing newsArticle documents`);
+  }
+
+  try {
+    const allArticles = await fetchFeeds();
+    console.log(`Fetched ${allArticles.length} articles from RSS feeds`);
+
+    const articles = allArticles.filter((a) => isSneakerRelated(a.title));
+    console.log(`${articles.length} articles passed sneaker filter`);
+
+    const results = {
+      deleted,
+      created: 0,
+      skipped: 0,
+      filtered: allArticles.length - articles.length,
+      errors: [] as string[],
+    };
     let processed = 0;
 
     for (const article of articles) {
@@ -240,7 +262,7 @@ export async function POST(req: NextRequest) {
           title: ai.title,
           slug: { _type: "slug", current: slug },
           excerpt: ai.excerpt?.slice(0, 200) ?? "",
-          body: markdownToPortableText(ai.body),
+          body: textToPortableText(ai.body),
           brand: ai.brand ?? "",
           tags: ai.tags ?? [],
           source: {
@@ -253,13 +275,11 @@ export async function POST(req: NextRequest) {
           status: "published",
         };
 
-        // Only set heroImage if we actually have a URL
         if (article.imageUrl) {
           doc.heroImage = article.imageUrl;
         }
 
         await sanityWriteClient.createOrReplace(doc);
-
         results.created++;
         processed++;
       } catch (err) {
