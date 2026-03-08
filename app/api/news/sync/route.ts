@@ -32,6 +32,7 @@ function markdownToPortableText(markdown: string) {
   return markdown
     .split(/\n\n+/)
     .filter((p) => p.trim())
+    .filter((p) => !p.trim().startsWith('#'))
     .map((paragraph, i) => ({
       _type: "block",
       _key: `block-${i}`,
