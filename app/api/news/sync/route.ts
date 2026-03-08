@@ -10,11 +10,9 @@ export const maxDuration = 60;
 const RSS_FEEDS = [
   { url: "https://sneakernews.com/feed/", name: "Sneaker News" },
   { url: "https://www.kicksonfire.com/feed/", name: "Kicks On Fire" },
-  { url: "https://hypebeast.com/feed", name: "Hypebeast" },
-  { url: "https://nicekicks.com/feed/", name: "Nice Kicks" },
 ];
 
-const MAX_ARTICLES = 5;
+const MAX_ARTICLES = 3;
 
 const SNEAKER_KEYWORDS = [
   "nike", "adidas", "jordan", "new balance", "puma", "reebok", "vans",
@@ -80,7 +78,7 @@ async function fetchFeeds(): Promise<
   { title: string; description: string; link: string; pubDate: string; sourceName: string; imageUrl?: string }[]
 > {
   const parser = new Parser({
-    timeout: 8000,
+    timeout: 5000,
     customFields: {
       item: [
         ["media:content", "mediaContent"],
@@ -146,55 +144,45 @@ async function rewriteWithAI(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1200,
-      system:
-        'You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a valid JSON object (no markdown, no backticks, no code fences) containing exactly these keys: { "title": string, "excerpt": string (max 160 chars), "body": string (PLAIN TEXT ONLY — absolutely no # headers, no ## subheadings, no bullet points, no asterisks, no markdown of any kind — just plain prose paragraphs separated by double newlines, 200-350 words), "brand": string (primary brand name only), "tags": string[] (3-5 lowercase tags) }',
-      messages: [
-        {
-          role: "user",
-          content: `Source title: ${title}\nSource description: ${description.slice(0, 800)}\nSource link: ${url}`,
-        },
-      ],
-    }),
-  });
-
-  const text = await response.text();
-  if (!response.ok) {
-    console.log(`Anthropic error: ${response.status} ${text.slice(0, 200)}`);
-    return null;
-  }
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 800,
+        system:
+          'You are a sneaker journalist for A Sneaker Life. Rewrite this sneaker news in your own casual, knowledgeable voice. Respond ONLY with a valid JSON object (no markdown, no backticks) with these keys: { "title": string, "excerpt": string (max 160 chars), "body": string (plain prose only, no # headers, no markdown, 3 paragraphs separated by double newlines, ~200 words), "brand": string, "tags": string[] (3-5 lowercase) }',
+        messages: [
+          {
+            role: "user",
+            content: `Title: ${title}\nDescription: ${description.slice(0, 500)}`,
+          },
+        ],
+      }),
+    });
+
+    clearTimeout(timeout);
+
+    const text = await response.text();
+    if (!response.ok) return null;
+
     const data = JSON.parse(text);
     const content = data.content?.[0]?.text ?? "{}";
     const cleaned = content.replace(/```json|```/g, "").trim();
     return JSON.parse(cleaned);
   } catch {
+    clearTimeout(timeout);
     return null;
   }
-}
-
-async function deleteAllNewsArticles(): Promise<number> {
-  const ids: string[] = await sanityWriteClient.fetch(
-    `*[_type == "newsArticle"]._id`,
-  );
-  if (!ids.length) return 0;
-
-  const transaction = sanityWriteClient.transaction();
-  for (const id of ids) {
-    transaction.delete(id);
-  }
-  await transaction.commit();
-  return ids.length;
 }
 
 export async function POST(req: NextRequest) {
@@ -202,15 +190,6 @@ export async function POST(req: NextRequest) {
     req.headers.get("x-cron-secret") ?? req.headers.get("authorization");
   if (secret !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const reqUrl = new URL(req.url);
-  const reset = reqUrl.searchParams.get("reset") === "true";
-
-  let deleted = 0;
-  if (reset) {
-    deleted = await deleteAllNewsArticles();
-    console.log(`Deleted ${deleted} existing newsArticle documents`);
   }
 
   try {
@@ -221,7 +200,6 @@ export async function POST(req: NextRequest) {
     console.log(`${articles.length} articles passed sneaker filter`);
 
     const results = {
-      deleted,
       created: 0,
       skipped: 0,
       filtered: allArticles.length - articles.length,
