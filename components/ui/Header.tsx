@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 const NAV_LINKS = [
   { label: "Releases", href: "/releases" },
+  { label: "News", href: "/news" },
   { label: "Reviews", href: "/reviews" },
   { label: "Deals", href: "/deals" },
   { label: "Videos", href: "/videos" },
