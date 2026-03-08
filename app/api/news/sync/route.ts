@@ -14,7 +14,7 @@ const RSS_FEEDS = [
   { url: "https://nicekicks.com/feed/", name: "Nice Kicks" },
 ];
 
-const MAX_ARTICLES = 10;
+const MAX_ARTICLES = 5;
 
 function slugify(text: string): string {
   return text
@@ -29,53 +29,117 @@ function hashSourceUrl(url: string): string {
 }
 
 function markdownToPortableText(markdown: string) {
-  return markdown
-    .split(/\n\n+/)
-    .filter((p) => p.trim())
-    .map((paragraph, i) => ({
+  const blocks: object[] = [];
+  let blockIndex = 0;
+
+  const lines = markdown.split(/\n/);
+  let currentParagraph: string[] = [];
+
+  const flushParagraph = () => {
+    const text = currentParagraph.join(" ").trim();
+    if (!text) return;
+    blocks.push({
       _type: "block",
-      _key: `block-${i}`,
+      _key: `block-${blockIndex++}`,
       style: "normal",
       markDefs: [],
       children: [
         {
           _type: "span",
-          _key: `span-${i}`,
-          text: paragraph.trim(),
+          _key: `span-${blockIndex}`,
+          text: text.replace(/\*\*(.*?)\*\*/g, "$1").replace(/\*(.*?)\*/g, "$1"),
           marks: [],
         },
       ],
-    }));
+    });
+    currentParagraph = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+
+    // Headings -> bold normal block
+    if (trimmed.startsWith("## ") || trimmed.startsWith("# ")) {
+      flushParagraph();
+      blocks.push({
+        _type: "block",
+        _key: `block-${blockIndex++}`,
+        style: trimmed.startsWith("## ") ? "h2" : "h1",
+        markDefs: [],
+        children: [
+          {
+            _type: "span",
+            _key: `span-${blockIndex}`,
+            text: trimmed.replace(/^#+\s/, ""),
+            marks: [],
+          },
+        ],
+      });
+      continue;
+    }
+
+    currentParagraph.push(trimmed);
+  }
+
+  flushParagraph();
+  return blocks;
 }
 
 async function fetchFeeds(): Promise<
-  { title: string; description: string; link: string; pubDate: string; sourceName: string }[]
+  { title: string; description: string; link: string; pubDate: string; sourceName: string; imageUrl?: string }[]
 > {
-  const parser = new Parser({ timeout: 5000 });
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const articles: { title: string; description: string; link: string; pubDate: string; sourceName: string }[] = [];
+  const parser = new Parser({
+    timeout: 8000,
+    customFields: {
+      item: [["media:content", "mediaContent"], ["media:thumbnail", "mediaThumbnail"], ["enclosure", "enclosure"]],
+    },
+  });
+  const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000); // 48hr window for more results
 
-  for (const feed of RSS_FEEDS) {
+  const feedPromises = RSS_FEEDS.map(async (feed) => {
     try {
       const result = await parser.parseURL(feed.url);
-      for (const item of result.items ?? []) {
-        if (!item.title || !item.link) continue;
-        const pubDate = item.pubDate ? new Date(item.pubDate) : null;
-        if (!pubDate || pubDate < cutoff) continue;
-        articles.push({
-          title: item.title,
-          description: item.contentSnippet ?? item.content ?? "",
-          link: item.link,
-          pubDate: pubDate.toISOString(),
-          sourceName: feed.name,
+      return (result.items ?? [])
+        .filter((item) => {
+          if (!item.title || !item.link) return false;
+          const pubDate = item.pubDate ? new Date(item.pubDate) : null;
+          return pubDate && pubDate >= cutoff;
+        })
+        .map((item) => {
+          const imageUrl =
+            (item as any).mediaContent?.$.url ||
+            (item as any).mediaThumbnail?.$.url ||
+            (item as any).enclosure?.url ||
+            extractImageFromContent((item as any).content || "") ||
+            undefined;
+
+          return {
+            title: item.title!,
+            description: item.contentSnippet ?? item.content ?? "",
+            link: item.link!,
+            pubDate: new Date(item.pubDate!).toISOString(),
+            sourceName: feed.name,
+            imageUrl,
+          };
         });
-      }
     } catch (err) {
       console.log(`Failed to fetch feed ${feed.name}: ${err}`);
+      return [];
     }
-  }
+  });
 
-  return articles;
+  const results = await Promise.all(feedPromises);
+  return results.flat();
+}
+
+function extractImageFromContent(content: string): string | null {
+  const match = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+  return match ? match[1] : null;
 }
 
 async function rewriteWithAI(
@@ -100,14 +164,14 @@ async function rewriteWithAI(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1500,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1200,
       system:
-        "You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a JSON object containing: { title: string, excerpt: string (max 200 chars), body: string (the article in markdown, 250-400 words), brand: string (primary brand), tags: string[] (3-5 relevant tags) }",
+        "You are a sneaker journalist writing for A Sneaker Life. Rewrite the following sneaker news into a fresh, original article. Keep the key facts but use your own voice — casual, knowledgeable, authentic sneakerhead tone. Include: what the shoe/collab is, why it matters, release date and price if known, and where to buy. Do NOT copy any phrasing from the source. Respond ONLY with a valid JSON object (no markdown, no backticks) containing exactly: { \"title\": string, \"excerpt\": string (max 160 chars, no quotes), \"body\": string (plain prose paragraphs separated by double newlines, 200-350 words, no markdown headers or bullet points), \"brand\": string (primary brand name only), \"tags\": string[] (3-5 lowercase tags) }",
       messages: [
         {
           role: "user",
-          content: `Source title: ${title}\nSource description: ${description.slice(0, 1000)}\nSource link: ${url}`,
+          content: `Source title: ${title}\nSource description: ${description.slice(0, 800)}\nSource link: ${url}`,
         },
       ],
     }),
@@ -122,7 +186,8 @@ async function rewriteWithAI(
   try {
     const data = JSON.parse(text);
     const content = data.content?.[0]?.text ?? "{}";
-    return JSON.parse(content.replace(/```json|```/g, "").trim());
+    const cleaned = content.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
   } catch {
     return null;
   }
@@ -146,9 +211,8 @@ export async function POST(req: NextRequest) {
       if (processed >= MAX_ARTICLES) break;
 
       try {
-        // Deduplicate: check if source URL already exists in Sanity
         const existing = await sanityWriteClient.fetch(
-          `*[_type == "newsArticle" && source.url == $sourceUrl][0]`,
+          `*[_type == "newsArticle" && source.url == $sourceUrl][0]._id`,
           { sourceUrl: article.link },
         );
         if (existing) {
@@ -170,14 +234,13 @@ export async function POST(req: NextRequest) {
         const slug = slugify(ai.title);
         const docId = `news-${hashSourceUrl(article.link)}`;
 
-        await sanityWriteClient.createOrReplace({
+        const doc: Record<string, unknown> = {
           _id: docId,
           _type: "newsArticle",
           title: ai.title,
           slug: { _type: "slug", current: slug },
           excerpt: ai.excerpt?.slice(0, 200) ?? "",
           body: markdownToPortableText(ai.body),
-          heroImage: "",
           brand: ai.brand ?? "",
           tags: ai.tags ?? [],
           source: {
@@ -188,13 +251,17 @@ export async function POST(req: NextRequest) {
           publishedAt: article.pubDate,
           autoGenerated: true,
           status: "published",
-        });
+        };
+
+        // Only set heroImage if we actually have a URL
+        if (article.imageUrl) {
+          doc.heroImage = article.imageUrl;
+        }
+
+        await sanityWriteClient.createOrReplace(doc);
 
         results.created++;
         processed++;
-
-        // Brief pause between API calls
-        await new Promise((r) => setTimeout(r, 500));
       } catch (err) {
         results.errors.push(String(err));
         processed++;
