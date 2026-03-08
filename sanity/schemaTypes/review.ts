@@ -9,6 +9,13 @@ export const review = defineType({
     defineField({ name: "slug", title: "Slug", type: "slug", options: { source: "title" }, validation: (Rule) => Rule.required() }),
     defineField({ name: "youtubeId", title: "YouTube Video ID", type: "string" }),
     defineField({ name: "thumbnailUrl", title: "Thumbnail URL", type: "url" }),
+    defineField({
+      name: "customImage",
+      title: "Custom Image",
+      type: "image",
+      options: { hotspot: true },
+      description: "Optional: upload a custom image to override the default",
+    }),
     defineField({ name: "brand", title: "Brand", type: "string" }),
     defineField({ name: "shoeName", title: "Shoe Name", type: "string" }),
     defineField({ name: "rating", title: "Rating (1-10)", type: "number" }),

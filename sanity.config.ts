@@ -63,6 +63,15 @@ export default defineConfig({
                   ])
               ),
             S.listItem()
+              .title("News Articles")
+              .child(S.documentTypeList("newsArticle").title("News Articles")),
+            S.listItem()
+              .title("Reviews")
+              .child(S.documentTypeList("review").title("Reviews")),
+            S.listItem()
+              .title("Releases")
+              .child(S.documentTypeList("sneakerRelease").title("Releases")),
+            S.listItem()
               .title("Videos")
               .child(S.documentTypeList("video").title("Videos")),
             S.listItem()

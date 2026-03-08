@@ -25,6 +25,13 @@ export const video = defineType({
       type: "url",
     }),
     defineField({
+      name: "customImage",
+      title: "Custom Image",
+      type: "image",
+      options: { hotspot: true },
+      description: "Optional: upload a custom image to override the default",
+    }),
+    defineField({
       name: "description",
       title: "Description",
       type: "text",

@@ -39,6 +39,13 @@ export const deal = defineType({
       description: "Direct image URL from the affiliate network",
       type: "url",
     }),
+    defineField({
+      name: "customImage",
+      title: "Custom Image",
+      type: "image",
+      options: { hotspot: true },
+      description: "Optional: upload a custom image to override the default",
+    }),
 
     // ── Pricing ───────────────────────────────────────────────────────────────
     defineField({
