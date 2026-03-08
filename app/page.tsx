@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { sanityClient } from "@/lib/sanity/client";
+import { urlFor } from "@/lib/sanity/image";
 import { ALL_DEALS_QUERY, FEATURED_VIDEOS_QUERY, UPCOMING_RELEASES_QUERY } from "@/lib/sanity/queries";
 import type { DealCardProps } from "@/components/deals/DealCard";
 import type { VideoItem } from "@/components/videos/VideoGrid";
@@ -18,21 +19,27 @@ function daysUntil(dateStr: string): number {
 }
 
 async function getHomeData() {
-  const [deals, videos, releases] = await Promise.all([
+  const [deals, videos, releases, newsArticles] = await Promise.all([
     sanityClient.fetch<DealCardProps[]>(ALL_DEALS_QUERY),
     sanityClient.fetch<VideoItem[]>(FEATURED_VIDEOS_QUERY),
     sanityClient.fetch<ReleaseItem[]>(UPCOMING_RELEASES_QUERY),
+    sanityClient.fetch<any[]>(
+      `*[_type == "newsArticle" && status == "published"] | order(publishedAt desc)[0...3] {
+        _id, title, slug, excerpt, heroImage, brand, publishedAt
+      }`
+    ),
   ]);
   return {
     deals: deals.slice(0, 12),
     latestVideo: videos[0] ?? null,
     recentVideos: videos.slice(1, 4),
     upcomingReleases: releases.slice(0, 6),
+    newsArticles,
   };
 }
 
 export default async function HomePage() {
-  const { deals, latestVideo, recentVideos, upcomingReleases } = await getHomeData();
+  const { deals, latestVideo, recentVideos, upcomingReleases, newsArticles } = await getHomeData();
 
   return (
     <div className="bg-[#fafafa] min-h-screen">
@@ -98,6 +105,41 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Latest News */}
+      {newsArticles.length > 0 && (
+        <section className="border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-black uppercase tracking-tight text-gray-900">Latest News</h2>
+              <Link href="/news" className="text-xs text-gray-400 hover:text-gray-900 transition-colors">View All News →</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {newsArticles.map((a: any) => (
+                <Link key={a._id} href={`/news/${a.slug?.current}`} className="group bg-white rounded-xl overflow-hidden border border-gray-100 hover:border-gray-300 hover:shadow-lg transition-all">
+                  <div className="relative aspect-video bg-gray-100 overflow-hidden">
+                    {a.heroImage ? (
+                      <Image src={urlFor(a.heroImage).width(600).height(338).url()} alt={a.title} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover transition-transform duration-300 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <svg className="text-gray-300" width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-4.86 8.86l-3 3.87L9 13.14 6 17h12l-3.86-5.14z" /></svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    {a.brand && (
+                      <span className="inline-block text-[10px] uppercase tracking-widest text-white bg-gray-900 px-2 py-0.5 rounded-full mb-1.5">{a.brand}</span>
+                    )}
+                    <h3 className="text-xs font-semibold leading-snug line-clamp-2 mb-1.5 group-hover:underline text-gray-900">{a.title}</h3>
+                    {a.excerpt && <p className="text-[10px] text-gray-400 line-clamp-2 mb-2">{a.excerpt}</p>}
+                    <span className="text-[10px] text-gray-400">{new Date(a.publishedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Deals Section */}
       {deals.length > 0 && (
