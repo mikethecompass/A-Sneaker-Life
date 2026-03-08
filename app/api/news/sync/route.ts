@@ -9,7 +9,7 @@ export const maxDuration = 60;
 
 const RSS_FEEDS = [
   { url: "https://sneakernews.com/feed/", name: "Sneaker News" },
-  { url: "https://www.kicksonfire.com/feed/", name: "Kicks On Fire" },
+  { url: "https://sneakerfiles.com/feed/", name: "Sneaker Files" },
 ];
 
 const MAX_ARTICLES = 3;
@@ -78,7 +78,7 @@ async function fetchFeeds(): Promise<
   { title: string; description: string; link: string; pubDate: string; sourceName: string; imageUrl?: string }[]
 > {
   const parser = new Parser({
-    timeout: 5000,
+    timeout: 8000,
     customFields: {
       item: [
         ["media:content", "mediaContent"],
@@ -133,7 +133,6 @@ function extractImageFromContent(content: string): string | null {
 async function rewriteWithAI(
   title: string,
   description: string,
-  url: string,
 ): Promise<{
   title: string;
   excerpt: string;
@@ -145,7 +144,7 @@ async function rewriteWithAI(
   if (!apiKey) return null;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -220,11 +219,7 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
-        const ai = await rewriteWithAI(
-          article.title,
-          article.description,
-          article.link,
-        );
+        const ai = await rewriteWithAI(article.title, article.description);
         if (!ai) {
           results.errors.push(`AI rewrite failed for: ${article.title}`);
           processed++;
