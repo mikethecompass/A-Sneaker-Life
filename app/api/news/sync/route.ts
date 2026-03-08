@@ -49,26 +49,58 @@ function markdownToPortableText(markdown: string) {
     }));
 }
 
+function extractImageFromRawItem(rawItem: string): string | undefined {
+  // 1. media:content or media:thumbnail
+  let imageUrl =
+    rawItem.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1] ||
+    rawItem.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1] ||
+    rawItem.match(/<enclosure[^>]+url=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i)?.[1];
+
+  // 2. First <img> tag inside <content:encoded> CDATA
+  if (!imageUrl) {
+    const contentEncoded =
+      rawItem.match(/<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i)?.[1] || '';
+    imageUrl = contentEncoded.match(/<img[^>]+src=["']([^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i)?.[1];
+  }
+
+  // 3. Any img tag anywhere in the item
+  if (!imageUrl) {
+    imageUrl = rawItem.match(/<img[^>]+src=["'](https:\/\/[^"']+\.(jpg|jpeg|png|webp)[^"']*)["']/i)?.[1];
+  }
+
+  return imageUrl;
+}
+
 async function fetchFeeds(): Promise<
-  { title: string; description: string; link: string; pubDate: string; sourceName: string }[]
+  { title: string; description: string; link: string; pubDate: string; sourceName: string; imageUrl: string }[]
 > {
   const parser = new Parser({ timeout: 5000 });
   const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const articles: { title: string; description: string; link: string; pubDate: string; sourceName: string }[] = [];
+  const articles: { title: string; description: string; link: string; pubDate: string; sourceName: string; imageUrl: string }[] = [];
 
   for (const feed of RSS_FEEDS) {
     try {
-      const result = await parser.parseURL(feed.url);
+      const res = await fetch(feed.url, { signal: AbortSignal.timeout(5000) });
+      const rawXml = await res.text();
+      const result = await parser.parseString(rawXml);
+      const rawItems = rawXml.match(/<item[\s>][\s\S]*?<\/item>/gi) ?? [];
+
       for (const item of result.items ?? []) {
         if (!item.title || !item.link) continue;
         const pubDate = item.pubDate ? new Date(item.pubDate) : null;
         if (!pubDate || pubDate < cutoff) continue;
+
+        // Find the matching raw XML block for this item
+        const rawItem = rawItems.find((raw) => item.link && raw.includes(item.link)) ?? '';
+        const imageUrl = extractImageFromRawItem(rawItem) ?? '';
+
         articles.push({
           title: item.title,
           description: item.contentSnippet ?? item.content ?? "",
           link: item.link,
           pubDate: pubDate.toISOString(),
           sourceName: feed.name,
+          imageUrl,
         });
       }
     } catch (err) {
@@ -178,7 +210,7 @@ export async function POST(req: NextRequest) {
           slug: { _type: "slug", current: slug },
           excerpt: ai.excerpt?.slice(0, 200) ?? "",
           body: markdownToPortableText(ai.body),
-          heroImage: "",
+          heroImage: article.imageUrl,
           brand: ai.brand ?? "",
           tags: ai.tags ?? [],
           source: {
